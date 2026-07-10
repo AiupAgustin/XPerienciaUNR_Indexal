@@ -1,0 +1,27 @@
+
+# --- ENTORNOS VIRTUALES ---
+# Ignora las librerías instaladas en tu compu
+venv/
+ENV/
+env/
+
+# --- ARCHIVOS TEMPORALES DE PYTHON ---
+# Ignora las carpetas que crea Python automáticamente al correr código
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- CONFIGURACIONES DE VS CODE ---
+# Ignora los ajustes locales de tu editor de texto
+.vscode/
+
+# --- CONFIGURACIONES DEL SISTEMA OPERATIVO ---
+# Ignora archivos invisibles de Windows/Mac (como miniaturas)
+Thumbs.db
+.DS_Store
+
+# --- ARCHIVOS DE DATOS / CREDENCIALES (A FUTURO) ---
+# Si después guardás las API keys de Replicate en un archivo .env, esto evita que se filtren
+.env
+*.log
