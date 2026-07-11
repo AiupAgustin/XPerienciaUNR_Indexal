@@ -175,3 +175,132 @@ def generar_grilla_muller_brockmann(imagen_path, destino_path, columnas=4, filas
         return {"error": f"Error al generar grilla Müller-Brockmann: {str(e)}"}
     
 
+def generar_grilla_van_de_graaf(imagen_path, destino_path, color_lineas_bgr=(180, 180, 180), color_caja_bgr=(255, 0, 132), grosor=2):
+    """
+    Tarea: Superpone el Canon de Van de Graaf (proporciones de manuscritos medievales).
+    Traza las diagonales principales de construcción y calcula la caja tipográfica resultante.
+    Guarda el archivo modificado en el disco y retorna las coordenadas geométricas.
+    """
+    try:
+        # 1. Cargamos la imagen original
+        img = cv2.imread(imagen_path)
+        if img is None:
+            return {"error": f"No se pudo cargar la imagen desde la ruta: {imagen_path}"}
+            
+        h, w, _ = img.shape
+        img_resultado = img.copy()
+        
+        # 2. Definimos los puntos clave de las esquinas (Eje Y invertido)
+        sup_izq = (0, 0)
+        sup_der = (w, 0)
+        inf_izq = (0, h)
+        inf_der = (w, h)
+        punto_medio_sup = (int(w / 2), 0)
+        
+        # 3. Trazamos las líneas guía geométricas (Regla y Compás)
+        # Diagonal Mayor
+        cv2.line(img_resultado, sup_izq, inf_der, color_lineas_bgr, 1)
+        # Diagonal Inversa
+        cv2.line(img_resultado, inf_izq, sup_der, color_lineas_bgr, 1)
+        # Diagonal a la mitad (para construcción del recto)
+        cv2.line(img_resultado, inf_izq, punto_medio_sup, color_lineas_bgr, 1)
+        
+        # 4. Cálculo de la Caja Tipográfica (La proporción áurea de Van de Graaf es en novenos)
+        x_inicio = int(w / 9)
+        y_inicio = int(h / 9)
+        x_fin = int(7 * w / 9)  # Deja 2/9 de margen externo
+        y_fin = int(7 * h / 9)  # Deja 2/9 de margen inferior
+        
+        # 5. Dibujamos la caja de contenido principal (Por defecto un Magenta vibrante)
+        cv2.rectangle(img_resultado, (x_inicio, y_inicio), (x_fin, y_fin), color_caja_bgr, grosor)
+        
+        # 6. Guardamos el resultado en el disco
+        cv2.imwrite(destino_path, img_resultado)
+        
+        # Retornamos la metadata para el reporte técnico o el Front
+        return {
+            "status": "success",
+            "archivo_generado": destino_path,
+            "dimensiones_imagen": {"ancho": w, "alto": h},
+            "caja_contenido": {
+                "top_left": (x_inicio, y_inicio),
+                "bottom_right": (x_fin, y_fin),
+                "ancho_caja": x_fin - x_inicio,
+                "alto_caja": y_fin - y_inicio
+            },
+            "margenes_calculados": {
+                "superior": y_inicio,
+                "inferior": h - y_fin,
+                "interno_izq": x_inicio,
+                "externo_der": w - x_fin
+            }
+        }
+        
+    except Exception as e:
+        return {"error": f"Error al generar Canon de Van de Graaf: {str(e)}"}
+    
+def generar_grilla_diagonal_dinamica(imagen_path, destino_path, color_bgr=(255, 0, 255), grosor=1):
+    """
+    Tarea: Superpone una Grilla Diagonal Dinámica basada en la relación de aspecto del lienzo.
+    Traza las diagonales principales y las líneas recíprocas desde los puntos medios 
+    para marcar los ángulos armónicos de tensión visual.
+    Guarda el archivo modificado en el disco y retorna los puntos clave calculados.
+    """
+    try:
+        # 1. Cargamos la imagen original
+        img = cv2.imread(imagen_path)
+        if img is None:
+            return {"error": f"No se pudo cargar la imagen desde la ruta: {imagen_path}"}
+            
+        h, w, _ = img.shape
+        img_resultado = img.copy()
+        
+        # 2. Definimos las coordenadas de las esquinas
+        sup_izq = (0, 0)
+        sup_der = (w, 0)
+        inf_izq = (0, h)
+        inf_der = (w, h)
+        
+        # 3. Calculamos los puntos medios de los cuatro bordes (Centros de los ejes)
+        medio_sup = (int(w / 2), 0)
+        medio_inf = (int(w / 2), h)
+        medio_izq = (0, int(h / 2))
+        medio_der = (w, int(h / 2))
+        centro_absoluto = (int(w / 2), int(h / 2))
+        
+        # 4. Dibujamos las Diagonales Principales del encuadre externo
+        cv2.line(img_resultado, sup_izq, inf_der, color_bgr, grosor)
+        cv2.line(img_resultado, inf_izq, sup_der, color_bgr, grosor)
+        
+        # 5. Dibujamos las líneas de tensión interna (Vectores recíprocos y rombo central)
+        # Unimos puntos medios opuestos para marcar los ejes rectos principales
+        cv2.line(img_resultado, medio_sup, medio_inf, color_bgr, grosor)
+        cv2.line(img_resultado, medio_izq, medio_der, color_bgr, grosor)
+        
+        # Unimos los puntos medios entre sí para formar el diamante/rombo dinámico interno
+        cv2.line(img_resultado, medio_sup, medio_der, color_bgr, grosor)
+        cv2.line(img_resultado, medio_der, medio_inf, color_bgr, grosor)
+        cv2.line(img_resultado, medio_inf, medio_izq, color_bgr, grosor)
+        cv2.line(img_resultado, medio_izq, medio_sup, color_bgr, grosor)
+        
+        # 6. Guardamos físicamente la imagen resultante en el disco
+        cv2.imwrite(destino_path, img_resultado)
+        
+        # Retornamos la metadata técnica de los vectores
+        return {
+            "status": "success",
+            "archivo_generado": destino_path,
+            "dimensiones_imagen": {"ancho": w, "alto": h},
+            "puntos_clave": {
+                "centro": centro_absoluto,
+                "puntos_medios": {
+                    "superior": medio_sup,
+                    "inferior": medio_inf,
+                    "izquierdo": medio_izq,
+                    "derecho": medio_der
+                }
+            }
+        }
+        
+    except Exception as e:
+        return {"error": f"Error al generar grilla diagonal dinámica: {str(e)}"}
