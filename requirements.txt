@@ -1,6 +1,6 @@
 
 
 Pillow==10.3.0
-requests==2.31.0
-opencv-python
+requests==2.34.2
+opencv-contrib-python-headless
 numpy
