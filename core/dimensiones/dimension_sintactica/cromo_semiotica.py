@@ -9,7 +9,7 @@ def obtener_paleta_cromatica(imagen_path, cantidad_colores=3):
     Devuelve una lista de diccionarios con los códigos HEX y RGB de los 3 colores dominantes.
     """
     try:
-        # 1. Leemos la imagen con OpenCV
+        # Leemos la imagen con OpenCV
         img = cv2.imread(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen desde la ruta: {imagen_path}"}
@@ -17,17 +17,17 @@ def obtener_paleta_cromatica(imagen_path, cantidad_colores=3):
         # OpenCV lee en BGR, lo pasamos a RGB que es el estándar de diseño
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
-        # 2. Redimensionamos a 150x150 píxeles para que el cálculo matemático sea mas rápido
+        # Redimensionamos a 150x150 píxeles para que el cálculo matemático sea mas rápido
         img_small = cv2.resize(img_rgb, (150, 150), interpolation=cv2.INTER_AREA)
         
-        # 3. Transformamos la matriz de la imagen en una lista plana de píxeles (R, G, B)
+        # Transformamos la matriz de la imagen en una lista plana de píxeles (R, G, B)
         pixeles = img_small.reshape(-1, 3)
         pixeles = np.float32(pixeles) # OpenCV exige que los datos sean de tipo flotante para K-Means
         
-        # 4. Definimos los criterios de parada (10 iteraciones o precisión de 1.0)
+        # Definimos los criterios de parada (10 iteraciones o precisión de 1.0)
         criterios = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
         
-        # 5. Ejecutamos K-Means para agrupar los colores en 'k' clusters (familias)
+        # Ejecutamos K-Means para agrupar los colores en 'k' clusters (familias)
         _, _, centros = cv2.kmeans(
             pixeles, 
             cantidad_colores, 
@@ -37,10 +37,10 @@ def obtener_paleta_cromatica(imagen_path, cantidad_colores=3):
             cv2.KMEANS_RANDOM_CENTERS
         )
         
-        # 6. Convertimos los centros de los grupos a números enteros (0-255)
+        # Convertimos los centros de los grupos a números enteros (0-255)
         centros = np.uint8(centros)
         
-        # 7. Iteramos los colores encontrados y guardamos tanto HEX como RGB en diccionarios
+        # Iteramos los colores encontrados y guardamos tanto HEX como RGB en diccionarios
         paleta_completa = []
         for color in centros:
             # Convertimos a int nativo de Python para que no de problemas al serializar
@@ -54,13 +54,13 @@ def obtener_paleta_cromatica(imagen_path, cantidad_colores=3):
             
         return paleta_completa
 
-    #por si no carga la imagen o hay algun error
+    # Por si no carga la imagen o hay algun error
     except Exception as e:
         return {"error": f"Error interno en el procesamiento de color: {str(e)}"}
 
 def analizar_atributos_cromaticos(imagen_path):
     """
-    La mejor opción para el reporte: Analiza la imagen completa píxel por píxel 
+    Analiza la imagen completa píxel por píxel 
     para garantizar máxima precisión en Brillo (Ansel Adams), Saturación y Temperatura.
     """
     try:
@@ -68,21 +68,21 @@ def analizar_atributos_cromaticos(imagen_path):
         if img is None:
             return {"error": f"No se pudo cargar la imagen para atributos"}
             
-        # Redimensionamos un toque para optimizar rendimiento (sigue siendo 100% preciso para promedios)
+        # Redimensionamos para optimizar rendimiento (sigue siendo 100% preciso para promedios)
         img_small = cv2.resize(img, (200, 200), interpolation=cv2.INTER_AREA)
             
-        # 1. Pasamos a HSV para medir Saturación (S) y Brillo Real (V)
+        # Pasamos a HSV para medir Saturación (S) y Brillo Real (V)
         img_hsv = cv2.cvtColor(img_small, cv2.COLOR_BGR2HSV)
         saturacion_promedio = np.mean(img_hsv[:, :, 1])
         brillo_promedio = np.mean(img_hsv[:, :, 2])
         
-        # 2. Mapeamos al Sistema de Zonas de Ansel Adams (0 a X)
+        # Mapeamos al Sistema de Zonas de Ansel Adams (0 a X)
         zona_numerica = int(brillo_promedio // 23.18)
         zona_numerica = min(zona_numerica, 10)
         mapeo_ansel_adams = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
         zona_ansel_dominante = mapeo_ansel_adams[zona_numerica]
         
-        # 3. Pasamos a RGB para evaluar Temperatura general
+        # Pasamos a RGB para evaluar Temperatura general
         img_rgb = cv2.cvtColor(img_small, cv2.COLOR_BGR2RGB)
         r = img_rgb[:, :, 0]
         b = img_rgb[:, :, 2]
@@ -106,6 +106,6 @@ def analizar_atributos_cromaticos(imagen_path):
             }
         }
     
-    #si no se pudo cargar la imagen
+    # Si no se pudo cargar la imagen
     except Exception as e:
         return {"error": f"Error en atributos: {str(e)}"}

@@ -12,14 +12,14 @@ def detectar_lineas_y_angulos(imagen_path):
         if img is None:
             return {"error": "No se pudo cargar la imagen para el análisis eidético"}
             
-        # 1. Pasamos a escala de grises y aplicamos un leve desenfoque para quitar ruido
+        # Pasamos a escala de grises y aplicamos un leve desenfoque para quitar ruido
         gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         desenfocado = cv2.GaussianBlur(gris, (5, 5), 0)
         
-        # 2. Detectamos los bordes con Canny
+        # Detectamos los bordes con Canny
         bordes = cv2.Canny(desenfocado, 50, 150, apertureSize=3)
         
-        # 3. Transformada de Hough para encontrar segmentos de líneas rectas
+        # Transformada de Hough para encontrar segmentos de líneas rectas
         # Ajustamos los parámetros para que busque líneas principales y no ruido
         lineas = cv2.HoughLinesP(
             bordes, 
@@ -47,7 +47,7 @@ def detectar_lineas_y_angulos(imagen_path):
 
 def calcular_tension_kandinsky(imagen_path):
     """
-    Tarea: Clasifica la composición según el predominio de ángulos (Kandinsky).
+    Clasifica la composición según el predominio de ángulos (Kandinsky).
     Filtra y evalúa si dominan las diagonales (Tensión Dinámica Alta) o las horizontales/verticales (Estática).
     """
     try:

@@ -3,12 +3,12 @@ import numpy as np
 
 def evaluar_contraste_figura_fondo(imagen_path):
     """
-    Tarea: Evalúa la legibilidad analizando el rango dinámico (luminancia) 
+    Evalúa la legibilidad analizando el rango dinámico (luminancia) 
     y la densidad de ruido/bordes en el fondo (simulando WCAG + Histograma de bordes).
     Retorna un veredicto categórico: 'Strong', 'Fair' o 'Weak'.
     """
     try:
-        # 1. Cargamos la imagen original
+        # Cargamos la imagen original
         img = cv2.imread(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen: {imagen_path}"}
@@ -17,7 +17,7 @@ def evaluar_contraste_figura_fondo(imagen_path):
         gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         h, w = gris.shape
         
-        # 2. Análisis del Histograma y Rango Dinámico (Luminancia)
+        # Análisis del Histograma y Rango Dinámico (Luminancia)
         # Calculamos los percentiles para entender qué tan separados están los oscuros de los claros
         # Esto es para no tomar lo 100% blanco o negro que pueden ser pocos pixeles
         p10 = np.percentile(gris, 10)  # Zona de sombras (figura o fondo oscuro)
@@ -29,13 +29,13 @@ def evaluar_contraste_figura_fondo(imagen_path):
         # Le sumo 0.05 al denominador por si p10 es cero por ser 100% negro
         ratio_perceptual = (p90 + 0.05) / (p10 + 0.05)
         
-        # 3. Análisis de Densidad de Bordes (Fondo ruidoso vs liso)
+        # Análisis de Densidad de Bordes (Fondo ruidoso vs liso)
         # Usamos Canny para detectar todas las altas frecuencias (texturas, micro-bordes)
         bordes = cv2.Canny(gris, 50, 150)
         total_pixeles_borde = np.sum(bordes == 255)
         densidad_bordes = (total_pixeles_borde / (h * w)) * 100  # Porcentaje de ruido
         
-        # 4. Matriz de Decisión (Lógica de negocio para clasificar)
+        # Matriz de Decisión (Lógica de negocio para clasificar)
         # Un ratio WCAG alto (> 4.5) con pocos bordes de fondo es ideal (Strong)
         if ratio_perceptual >= 4.5 and densidad_bordes < 5.0:
             veredicto = "Strong"
@@ -67,7 +67,7 @@ def evaluar_contraste_figura_fondo(imagen_path):
 def evaluar_solidez_estructural(imagen_path, tipo_grilla="tercios"):
     """
     Mide la alineación exacta calculando las líneas guía específicas 
-    para CADA una de las grillas del sistema.
+    para cada una de las grillas del sistema.
     """
     try:
         img = cv2.imread(imagen_path)
@@ -78,7 +78,7 @@ def evaluar_solidez_estructural(imagen_path, tipo_grilla="tercios"):
         lineas_referencia_x = []
         lineas_referencia_y = []
         
-        # 📐 MATEMÁTICA DE LÍNEAS GUÍA REALES PARA CADA GRILLA
+        # MATEMÁTICA DE LÍNEAS GUÍA REALES PARA CADA GRILLA
         if tipo_grilla == "tercios":
             lineas_referencia_x = [int(w / 3), int(2 * w / 3)]
             lineas_referencia_y = [int(h / 3), int(2 * h / 3)]
@@ -156,7 +156,7 @@ def evaluar_solidez_estructural(imagen_path, tipo_grilla="tercios"):
 
 def calcular_composicion_experta(imagen_path, categoria="general"):
     """
-    Función Maestra: Cruza el contraste con la solidez estructural de la
+    Cruza el contraste con la solidez estructural de la
     grilla IDEAL elegida para cada categoría.
     """
     try:
@@ -166,7 +166,7 @@ def calcular_composicion_experta(imagen_path, categoria="general"):
             
         categoria = categoria.lower().strip()
         
-        # 🎯 ASIGNACIÓN DE LA GRILLA IDEAL REAL
+        # ASIGNACIÓN DE LA GRILLA IDEAL REAL
         if categoria == "ui_ux":
             tipo_grilla_optima = "modular"
         elif categoria == "logotipos":
