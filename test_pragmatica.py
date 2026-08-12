@@ -17,7 +17,7 @@ def probar_analisis_pragmatico(subcapa_a_probar: str = "todas"):
     Parámetro subcapa_a_probar: 'agentiva', 'atencion', 'narrativa', 'sesgos', 'inclusion' o 'todas'
     """
     # 1. Ruta a la imagen real de prueba
-    ruta_imagen_prueba = r"C:\Users\Agus\Desktop\imagenes test Indexal\test_eco.jfif"
+    ruta_imagen_prueba = r"C:\Users\Agus\Desktop\imagenes test Indexal\test_gaturro.jfif"
     
     # 2. Categoría a evaluar ('afiche', 'logo', 'ui', 'general')
     categoria_prueba = "general"
@@ -76,6 +76,6 @@ def probar_analisis_pragmatico(subcapa_a_probar: str = "todas"):
 
 if __name__ == "__main__":
     # Opciones: "agentiva", "atencion", "narrativa", "sesgos", "inclusion" o "todas"
-    SUBCAPA = "narrativa" 
+    SUBCAPA = "sesgos"  # Cambiar según la subcapa que se quiera probar
     
     probar_analisis_pragmatico(subcapa_a_probar=SUBCAPA)
