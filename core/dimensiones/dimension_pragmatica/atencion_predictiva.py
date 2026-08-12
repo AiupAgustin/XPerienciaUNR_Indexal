@@ -1,11 +1,13 @@
 import cv2
 import numpy as np
 import os
+import unicodedata
 from pathlib import Path
+from core.categorias.config import imread_unicode
 
 def calcular_salience_map(imagen_path: str):
     """Calcula el mapa de saliencia visual usando el algoritmo de OpenCV."""
-    img = cv2.imread(imagen_path)
+    img = imread_unicode(imagen_path)
     if img is None:
         return None, None
 
@@ -36,7 +38,7 @@ def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "ou
 
     h, w = saliency_map.shape
 
-    # Definición de Región Central vs Periferia (Análisis de 5 zonas)
+    # Definición de Región Central vs Periferia
     m_h, m_w = h // 2, w // 2
     margin_h, margin_w = h // 4, w // 4
 
@@ -76,21 +78,42 @@ def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "ou
         else:
             recorrido_sugerido = "Atención distribuida en la periferia de la composición."
 
-    # Determinar Punto de Entrada
-    _, _, _, max_loc = cv2.minMaxLoc(saliency_map)
+    # En lugar de 1 solo píxel (sensible a ruido), buscamos el centro de masa de la zona de mayor saliencia
+    # Aplicamos un umbral para quedarnos solo con el top 10% de áreas más calientes
+    umbral_corte = int(np.percentile(saliency_map, 90))
+    _, thresh = cv2.threshold(saliency_map, umbral_corte, 255, cv2.THRESH_BINARY)
     
-    # Evaluar si el punto máximo está en el área central
-    if margin_w <= max_loc[0] <= (w - margin_w) and margin_h <= max_loc[1] <= (h - margin_h):
-        punto_entrada_desc = "El punto focal primario se ubica en el centro de la composición."
+    # Si la imagen tiene zonas calientes claras
+    M = cv2.moments(thresh)
+    if M["m00"] > 0:
+        # Centroide ponderado de las zonas de mayor intensidad visual
+        center_x = int(M["m10"] / M["m00"])
+        center_y = int(M["m01"] / M["m00"])
     else:
-        pos_y_texto = "superior" if max_loc[1] < m_h else "inferior"
-        pos_x_texto = "izquierda" if max_loc[0] < m_w else "derecha"
+        # Fallback si no supera el umbral: usamos minMaxLoc sobre imagen desenfocada
+        saliency_suave = cv2.GaussianBlur(saliency_map, (21, 21), 0)
+        _, _, _, (center_x, center_y) = cv2.minMaxLoc(saliency_suave)
+
+    # Evaluamos posición del centroide usando división por tercios (3x3 grid)
+    tercio_w = w // 3
+    tercio_h = h // 3
+
+    pos_y_texto = "superior" if center_y < tercio_h else ("inferior" if center_y > 2 * tercio_h else "central")
+    pos_x_texto = "izquierda" if center_x < tercio_w else ("derecha" if center_x > 2 * tercio_w else "central")
+
+    if pos_y_texto == "central" and pos_x_texto == "central":
+        punto_entrada_desc = "El punto focal primario se ubica en el centro de la composición."
+    elif pos_y_texto == "central":
+        punto_entrada_desc = f"El punto focal primario se ubica en el área central-{pos_x_texto} de la composición."
+    elif pos_x_texto == "central":
+        punto_entrada_desc = f"El punto focal primario se ubica en el área {pos_y_texto}-central de la composición."
+    else:
         punto_entrada_desc = f"El punto focal primario se ubica en el área {pos_y_texto}-{pos_x_texto} de la composición."
 
-    # Construir Descripciones Finales (con evaluación de simetría en zonas frías)
+    # Construir Descripciones Finales
     desc_zonas_calientes = f"La mayor concentración de atención visual (zona caliente) se localiza en {zona_caliente_desc}"
     
-    # Detección inteligente de Zonas Frías (empates técnicos y franjas)
+    # Detección inteligente de Zonas Frías
     val_min = min(cuadrantes.values())
     cuadrantes_frios = [q for q, val in cuadrantes.items() if val <= val_min * 1.15]
 
@@ -115,12 +138,20 @@ def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "ou
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    nombre_base = Path(imagen_path).stem
-    path_salida_heatmap = str(output_dir / f"heatmap_{nombre_base}.jpg")
+    nombre_raw = Path(imagen_path).stem
+    nombre_base = unicodedata.normalize('NFKD', nombre_raw).encode('ASCII', 'ignore').decode('utf-8')
+    if not nombre_base:
+        nombre_base = "imagen"
 
-    cv2.imwrite(path_salida_heatmap, overlay)
+    path_salida_heatmap = str((output_dir / f"heatmap_{nombre_base}.jpg").resolve()).replace("\\", "/")
 
-    # Salida limpia cumpliendo el requerimiento exacto
+    success, buffer = cv2.imencode(".jpg", overlay)
+    if success:
+        with open(path_salida_heatmap, "wb") as f:
+            f.write(buffer)
+    else:
+        cv2.imwrite(path_salida_heatmap, overlay)
+
     return {
         "status": "success",
         "metrica": "Atención Predictiva / HeatMap (Pragmática)",

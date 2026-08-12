@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from core.categorias.config import imread_unicode
 
 def analizar_secuencia_narrativa(imagen_path: str) -> dict:
     """
@@ -7,7 +8,7 @@ def analizar_secuencia_narrativa(imagen_path: str) -> dict:
     Evalúa el flujo del ojo en el tiempo y la aptitud para piezas seriadas,
     comics o packaging desplegable.
     """
-    img = cv2.imread(imagen_path)
+    img = imread_unicode(imagen_path)
     if img is None:
         return {
             "status": "error",
