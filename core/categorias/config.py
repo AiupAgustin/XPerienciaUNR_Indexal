@@ -2,11 +2,13 @@
 
 import json
 import ollama
+import cv2
+import numpy as np
 
 def consultar_minicpm_v(imagen_path: str, prompt: str) -> dict:
     """
     Centraliza la infraestructura de la IA de forma local.
-    Procesa la imagen usando Qwen2 local a través de Ollama,
+    Procesa la imagen usando minicpm-v local a través de Ollama,
     retornando siempre un diccionario estandarizado.
     """
     try:
@@ -50,3 +52,17 @@ def consultar_minicpm_v(imagen_path: str, prompt: str) -> dict:
             "error": "El modelo local no devolvió un formato JSON válido.",
             "raw_response": respuesta_raw
         }
+
+# Funcion para que OpenCV pueda leer imágenes con rutas que contengan caracteres especiales en Windows
+def imread_unicode(path: str, flags: int = cv2.IMREAD_COLOR) -> np.ndarray | None:
+    """
+    Lee una imagen utilizando un buffer de numpy para evitar fallos de lectura
+    con rutas que contengan caracteres especiales (ñ, acentos, espacios) en Windows.
+    """
+    try:
+        buffer = np.fromfile(path, dtype=np.uint8)
+        img = cv2.imdecode(buffer, flags)
+        return img
+    except Exception as e:
+        print(f"Error al cargar la imagen desde '{path}': {e}")
+        return None
