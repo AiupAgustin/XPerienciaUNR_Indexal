@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Auditoría Semiótica y UI/UX</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 15mm 18mm 15mm;
+            @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: 'Helvetica Neue', Arial, sans-serif;
+                font-size: 9px;
+                color: #94a3b8;
+            }
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.5;
+            font-size: 12px;
+            background-color: #ffffff;
+        }
+
+        .header {
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+        .header-title {
+            color: #0f172a;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            letter-spacing: -0.5px;
+        }
+        .header-meta {
+            color: #64748b;
+            font-size: 11px;
+            margin: 0;
+        }
+
+        /* ESTILOS AÑADIDOS PARA LA IMAGEN PRINCIPAL */
+        .preview-container {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+        .preview-title {
+            color: #334155;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .preview-img {
+            max-width: 100%;
+            max-height: 380px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
+        .bloque-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .bloque-header {
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        .titulo-bloque {
+            color: #2563eb;
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0 0 6px 0;
+        }
+
+        .marco-teorico-container {
+            margin-bottom: 12px;
+        }
+        .tag {
+            display: inline-block;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #dbeafe;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 500;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .tabla-resultados {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        .tabla-resultados th {
+            text-align: left;
+            background: #f8fafc;
+            color: #475569;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 6px 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .tabla-resultados td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+            font-size: 11px;
+        }
+        .clave-td {
+            font-weight: 600;
+            color: #334155;
+            width: 35%;
+            text-transform: capitalize;
+        }
+        .valor-td {
+            color: #475569;
+        }
+
+        .badge-status {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+            font-size: 10px;
+        }
+        .badge-success { background: #dcfce7; color: #15803d; }
+        .badge-alert { background: #fee2e2; color: #b91c1c; }
+
+        .json-subblock {
+            background: #f8fafc;
+            border-left: 3px solid #cbd5e1;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .img-container {
+            margin-top: 6px;
+            text-align: center;
+        }
+        .img-reporte {
+            max-width: 100%;
+            max-height: 260px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1 class="header-title">{{ metadata.titulo_reporte if metadata.titulo_reporte else "Auditoría de Diseño Visual" }}</h1>
+        <p class="header-meta">
+            <strong>Pieza analizada:</strong> 
+            {{ metadata.imagen_path.split('\\')[-1].split('/')[-1] if metadata.imagen_path else "Imagen" }}
+        </p>
+    </div>
+
+    
+    {% if metadata.imagen_path %}
+    <div class="preview-container">
+        <div class="preview-title">Pieza Gráfica en Análisis</div>
+        <img src="{{ metadata.imagen_path_uri if metadata.imagen_path_uri else metadata.imagen_path | replace('\\', '/') }}" class="preview-img" alt="Pieza a analizar">
+    </div>
+    {% endif %}
+
+    {% for b in bloques %}
+    <div class="bloque-card">
+        <div class="bloque-header">
+            <h2 class="titulo-bloque">{{ b.bloque if b.bloque else "Análisis Visual" }}</h2>
+            
+            {% if b.marco_teorico %}
+            <div class="marco-teorico-container">
+                {% for item in b.marco_teorico %}
+                    <span class="tag">{{ item }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <table class="tabla-resultados">
+            <thead>
+                <tr>
+                    <th>Métrica / Dimensión</th>
+                    <th>Resultado del Análisis</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for key, val in b.items() %}
+                {% if key.startswith('desglose_') or key.startswith('evaluacion_') or key.startswith('analisis_') or key.startswith('quiebre_') or key.startswith('sistema_') or key.startswith('tension_') or key.startswith('balance_') or key.startswith('mapa_') %}
+                    
+                    {% if val is mapping %}
+                        {% for sub_key, sub_val in val.items() %}
+                        <tr>
+                            <td class="clave-td">{{ sub_key | replace('_', ' ') }}</td>
+                            <td class="valor-td">
+                                {% if sub_val is string and (sub_val.lower().endswith('.jpg') or sub_val.lower().endswith('.png') or sub_val.lower().endswith('.jpeg')) %}
+                                    <div class="img-container">
+                                        <img src="{{ sub_val | replace('\\', '/') }}" class="img-reporte">
+                                    </div>
+                                {% elif sub_val is sameas true %}
+                                    <span class="badge-status badge-success">Cumple / Alineado</span>
+                                {% elif sub_val is sameas false %}
+                                    <span class="badge-status badge-alert">Requiere Atención / Desalineado</span>
+                                {% elif sub_val is mapping %}
+                                    <div class="json-subblock">
+                                        {% for k, v in sub_val.items() %}
+                                            {% if v is string and (v.lower().endswith('.jpg') or v.lower().endswith('.png') or v.lower().endswith('.jpeg')) %}
+                                                <div class="img-container">
+                                                    <img src="{{ v | replace('\\', '/') }}" class="img-reporte">
+                                                </div>
+                                            {% elif v is mapping %}
+                                                <div style="margin-bottom: 6px;">
+                                                    <strong>{{ k if k.startswith('Zona ') else k | replace('_', ' ') | title }}:</strong>
+                                                    <ul style="margin: 4px 0 4px 16px; padding: 0; list-style-type: disc;">
+                                                        {% for sub_k, sub_v in v.items() %}
+                                                            <li style="margin-bottom: 2px;">
+                                                                <strong>{{ sub_k if sub_k.startswith('Zona ') else sub_k | replace('_', ' ') | title }}:</strong> {{ sub_v }}
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            {% else %}
+                                                <strong>{{ k if k.startswith('Zona ') else k | replace('_', ' ') | title }}:</strong> {{ v }}<br>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ sub_val }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td class="clave-td">{{ key | replace('_', ' ') }}</td>
+                            <td class="valor-td">
+                                {% if val is string and (val.lower().endswith('.jpg') or val.lower().endswith('.png') or val.lower().endswith('.jpeg')) %}
+                                    <div class="img-container">
+                                        <img src="{{ val | replace('\\', '/') }}" class="img-reporte">
+                                    </div>
+                                {% elif val is mapping %}
+                                    <div class="json-subblock">
+                                        {% for k, v in val.items() %}
+                                            <strong>{{ k if k.startswith('Zona ') else k | replace('_', ' ') | title }}:</strong> {{ v }}<br>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ val }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+
+                {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+
+</body>
+</html>
