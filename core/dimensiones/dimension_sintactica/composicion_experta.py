@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from core.categorias.config import imread_unicode
 
 def evaluar_contraste_figura_fondo(imagen_path):
     """
@@ -9,7 +10,7 @@ def evaluar_contraste_figura_fondo(imagen_path):
     """
     try:
         # Cargamos la imagen original
-        img = cv2.imread(imagen_path)
+        img = imread_unicode(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen: {imagen_path}"}
             
@@ -70,7 +71,7 @@ def evaluar_solidez_estructural(imagen_path, tipo_grilla="tercios"):
     para cada una de las grillas del sistema.
     """
     try:
-        img = cv2.imread(imagen_path)
+        img = imread_unicode(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen: {imagen_path}"}
         h, w, _ = img.shape

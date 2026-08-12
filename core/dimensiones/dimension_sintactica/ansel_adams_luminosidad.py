@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from core.categorias.config import imread_unicode
 
 def calcular_sistema_zonas(imagen_path):
     """
@@ -7,7 +8,7 @@ def calcular_sistema_zonas(imagen_path):
     y calcula el porcentaje de ocupación de cada zona en la pieza gráfica.
     """
     try:
-        img = cv2.imread(imagen_path)
+        img = imread_unicode(imagen_path)
         if img is None:
             return {"error": "No se pudo cargar la imagen para el análisis de Ansel Adams"}
 
@@ -18,6 +19,8 @@ def calcular_sistema_zonas(imagen_path):
         # El ancho de cada zona en una escala de 0-255 es de ~23.18 (cada zona vale casi 23 puntos de brillo)
         ancho_zona = 255 / 11
         distribucion_zonas = {}
+
+        romanos = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
         
         for zona in range(11):
             limite_inferior = int(zona * ancho_zona)
@@ -29,7 +32,7 @@ def calcular_sistema_zonas(imagen_path):
             
             # Guardamos con número romano para respetar la nomenclatura clásica
             romanos = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
-            distribucion_zonas[f"Zona_{romanos[zona]}"] = round(porcentaje, 2)
+            distribucion_zonas[f"Zona {romanos[zona]}"] = round(porcentaje, 2)
             
         return distribucion_zonas
         
@@ -43,25 +46,25 @@ def evaluar_rango_dinamico_adams(distribucion_zonas):
     """
     try:
         # Agrupamos para analizar el equilibrio tonal
-        extremo_oscuro = distribucion_zonas["Zona_0"] + distribucion_zonas["Zona_I"]
-        extremo_claro = distribucion_zonas["Zona_IX"] + distribucion_zonas["Zona_X"]
-        tonos_medios = sum(distribucion_zonas[z] for z in ["Zona_IV", "Zona_V", "Zona_VI"])
+        extremo_oscuro = distribucion_zonas["Zona 0"] + distribucion_zonas["Zona I"]
+        extremo_claro = distribucion_zonas["Zona IX"] + distribucion_zonas["Zona X"]
+        tonos_medios = sum(distribucion_zonas[z] for z in ["Zona IV", "Zona V", "Zona VI"])
         
         # Matriz de decisión basada en equilibrio tonal de la pieza
         if extremo_oscuro > 60.0 or extremo_claro > 60.0:
-            veredicto = "Weak"
+            veredicto = "Deficiente"
             nota = "Rango dinámico deficiente. La imagen está excesivamente empastada en las sombras o quemada en las luces altas."
         elif tonos_medios >= 20.0:
-            veredicto = "Strong"
+            veredicto = "Óptimo / Equilibrado"
             nota = "Excelente rango dinámico. Se observa una transición tonal rica y un uso equilibrado del sistema de zonas."
         else:
-            veredicto = "Fair"
+            veredicto = "Aceptable / Contrastado"
             nota = "Rango dinámico aceptable, aunque la composición tonal tiende a ser muy contrastada, perdiendo riqueza en tonos medios."
             
         return {
             "status": "success",
             "metrica": "Luminosidad (Ansel Adams)",
-            "veredicto": veredicto,
+            "evaluacion_rango_dinamico": veredicto,
             "descripcion": nota,
             "distribucion_completa": distribucion_zonas
         }

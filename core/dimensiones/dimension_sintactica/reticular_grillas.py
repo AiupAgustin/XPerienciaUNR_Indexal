@@ -1,6 +1,7 @@
 
 import cv2
 import numpy as np
+from core.categorias.config import imread_unicode
 
 def generar_grilla_tercios(imagen_path, destino_path, color_bgr=(0, 255, 0), grosor=2):
     """
@@ -10,7 +11,7 @@ def generar_grilla_tercios(imagen_path, destino_path, color_bgr=(0, 255, 0), gro
     """
     try:
         # Cargamos la imagen desde la ruta que guardó el backend
-        img = cv2.imread(imagen_path)
+        img = imread_unicode(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen desde la ruta: {imagen_path}"}
             
@@ -65,7 +66,7 @@ def generar_grilla_aurea(imagen_path, destino_path, color_bgr=(255, 0, 0), groso
     """
     try:
         # Cargamos la imagen original
-        img = cv2.imread(imagen_path)
+        img = imread_unicode(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen desde la ruta: {imagen_path}"}
             
@@ -123,7 +124,7 @@ def generar_grilla_muller_brockmann(imagen_path, destino_path, columnas=4, filas
     """
     try:
         # Cargamos la imagen original
-        img = cv2.imread(imagen_path)
+        img = imread_unicode(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen desde la ruta: {imagen_path}"}
             
@@ -183,7 +184,7 @@ def generar_grilla_van_de_graaf(imagen_path, destino_path, color_lineas_bgr=(180
     """
     try:
         # Cargamos la imagen original
-        img = cv2.imread(imagen_path)
+        img = imread_unicode(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen desde la ruta: {imagen_path}"}
             
@@ -248,7 +249,7 @@ def generar_grilla_diagonal_dinamica(imagen_path, destino_path, color_bgr=(255, 
     """
     try:
         # Cargamos la imagen original
-        img = cv2.imread(imagen_path)
+        img = imread_unicode(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen desde la ruta: {imagen_path}"}
             
