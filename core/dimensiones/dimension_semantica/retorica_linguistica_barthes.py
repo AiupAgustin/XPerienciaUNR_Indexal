@@ -18,8 +18,10 @@ PROMPTS_BARTHES = {
         "o Relevo (textos informativos que avanzan el flujo de la interacción digital)."
     ),
     "general": (
-        "Analizá el mensaje lingüístico (texto) presente en la imagen desde la teoría semiótica de Roland Barthes. "
-        "Extrae el texto mediante OCR y evalúa su relación retórica con la imagen (Anclaje o Relevo)."
+        "REGLA ESTRICTA DE FIDELIDAD TIPOGRÁFICA:\n"
+        "1. Verificá si existen letras, palabras o texto gráfico escrito explícitamente dibujado o impreso en la imagen.\n"
+        "2. Si NO hay texto escrito explícito en la imagen, NO inventes, traduzcas, ni hagas descripciones de lo que ves en la foto como si fuera texto.\n"
+        "3. Si identificás texto escrito real, extraelo mediante OCR y evalúa su relación retórica (Anclaje o Relevo)."
     )
 }
 
@@ -39,19 +41,21 @@ def analizar_retorica_barthes(imagen_path: str, categoria: str = "general") -> d
     Debes responder EXCLUSIVAMENTE con un objeto JSON válido, en idioma español de uso común.
     No incluyas preámbulos, notas ni bloques markdown auxiliares.
 
-    INSTRUCCIÓN SEMÁNTICA DE JERARQUÍA Y BARTHES:
-    1. 'texto_principal': Transcribe ÚNICAMENTE el titular, slogan o texto dominante de la pieza. Ignora textos legales, sellos de advertencia, gramos o leyendas de 'sin conservantes'. Si no hay texto, responde: "Sin texto visible".
-    2. 'textos_secundarios': Transcribe brevemente textos secundarios o legales detectados (ej. "Sin conservantes", sellos, legales). Si no hay, responde: "Ninguno".
-    3. 'funcion_linguistica': Evalúa la función del 'texto_principal' respecto a la imagen eligiendo únicamente entre: "Anclaje", "Relevo" o "No aplica (Sin texto)".
-    4. 'analisis_retorico': Explica en una sola línea cómo el texto principal fija el sentido de la imagen (Anclaje) o completa la narrativa (Relevo).
+    INSTRUCCIÓN SEMÁNTICA DE VERIFICACIÓN TIPOGRÁFICA Y BARTHES:
+    1. 'texto_principal': Transcribe ÚNICAMENTE el texto o caracteres tipográficos impresos en la imagen. Queda ESTRICTAMENTE PROHIBIDO describir elementos visuales u objetos de la escena en este campo. Si no hay letras o palabras escritas en la imagen, responde exactamente: "Sin texto visible".
+    2. 'textos_secundarios': Transcribe textos accesorios o legales secundarios. Si no hay, responde: "Sin texto secundario".
+    3. 'funcion_linguistica': EVALUACIÓN CONDICIONAL ESTRICTA:
+       - Si 'texto_principal' es "Sin texto visible", este campo DEBE SER OBLIGATORIAMENTE: "Sin texto (Ausente)". Queda ESTRICTAMENTE PROHIBIDO responder "Anclaje" o "Relevo" si no hay texto.
+       - Si SI hay texto transcrito, elige únicamente entre "Anclaje" o "Relevo".
+    4. 'analisis_retorico': Si hay texto, explica en una sola línea cómo el texto fija o complementa el sentido. Si no hay texto, responde: "La pieza es de carácter puramente visual y prescinde de mensaje lingüístico escrito."
 
     La estructura del JSON debe ser exactamente:
     {{
         "analisis_barthes": {{
-            "texto_principal": "Transcripción del titular o slogan principal",
-            "textos_secundarios": "Textos accesorios, legales o informativos secundarios",
-            "funcion_linguistica": "Anclaje / Relevo / No aplica (Sin texto)",
-            "analisis_retorico": "Explicación en una sola línea sobre la relación del texto principal con la imagen."
+            "texto_principal": "Transcripción del texto o 'Sin texto visible'",
+            "textos_secundarios": "Transcripción de textos accesorios o 'Sin texto secundario'",
+            "funcion_linguistica": "Anclaje / Relevo / Sin texto (Ausente)",
+            "analisis_retorico": "Explicación en una sola línea sobre la relación del texto con la imagen o de la autonomía visual."
         }}
     }}
     """
@@ -63,7 +67,6 @@ def analizar_retorica_barthes(imagen_path: str, categoria: str = "general") -> d
     if "error" in resultado_vlm:
         return resultado_vlm
         
-   
     return {
         "status": "success",
         "metrica": "Retórica y Lingüística (Roland Barthes)",

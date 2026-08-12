@@ -1,6 +1,6 @@
 from core.categorias.config import consultar_minicpm_v
 
-# Diccionario de Prompts Especializados por Categoría (Enfocados en convenciones culturales y leyes semánticas)
+# Diccionario de Prompts Especializados por Categoría
 PROMPTS_SIMBOLICOS = {
     "afiche": (
         "Analizá este afiche publicitario/comunicacional desde la perspectiva semiótica de Charles Peirce (Subcapa Simbólica). "
@@ -29,10 +29,8 @@ def analizar_semiotica_simbolica(imagen_path: str, categoria: str = "general") -
     Subcapa Simbólica (Peirce): Interpretación semántica basada en convenciones culturales y leyes sociales.
     Estructurada en tres niveles geográfico-culturales (ARG / LATAM / Global).
     """
-    # Selección del prompt base según la categoría
     prompt_base = PROMPTS_SIMBOLICOS.get(categoria.lower(), PROMPTS_SIMBOLICOS["general"])
     
-    # Inyección de instrucciones semánticas y de estructura abstracta regional
     prompt_final = f"""
     {prompt_base}
 
@@ -40,33 +38,39 @@ def analizar_semiotica_simbolica(imagen_path: str, categoria: str = "general") -
     Debes responder EXCLUSIVAMENTE con un objeto JSON válido, en idioma español de uso común.
     No incluyas preámbulos, notas ni bloques markdown auxiliares.
 
-    INSTRUCCIÓN SEMÁNTICA SIMBÓLICA:
-    Interpreta el significado de los elementos identificados dividiéndolo explícitamente según el alcance de la convención cultural en tres niveles obligatorios:
-    1. Regional (Argentina): Códigos específicos de la cultura, costumbres, modismos visuales o entorno argentino.
-    2. LATAM: Convenciones o realidades socio-culturales compartidas a nivel latinoamericano.
-    3. Global: Significados universales, occidentales estandarizados o leyes de diseño internacionales.
+    INSTRUCCIÓN SEMÁNTICA SIMBÓLICA Y FIDELIDAD OBSERVACIONAL:
+    Analizá la significación de la pieza considerando tres niveles de convención cultural:
 
-    Construye cada respuesta de manera fluida, breve y conceptual en una sola línea (Ejemplo de estructura abstracta: 'El elemento A connota B bajo la convención C'). 
-    NO inventes interpretaciones si la imagen no presenta símbolos claros; en su defecto, analiza la disposición cultural general de los objetos cotidianos visibles. No copies palabras del ejemplo de estructura.
+    1. Contexto Local (Argentina):
+       - Verificá si existen símbolos, banderas, marcas o códigos locales explícitamente presentes.
+       - Si NO existen elementos o textos locales explícitos, responde ESTRICTAMENTE: "Sin elementos de la iconografía o cultura local argentina."
+       - Queda PROHIBIDO inventar u opinar sobre influencias culturales de otros países en esta casilla.
+
+    2. Contexto Regional (LATAM):
+       - Identificá convenciones, tipologías o fenómenos visuales/culturales compartidos a escala latinoamericana.
+
+    3. Contexto Global:
+       - Evaluá significados universales, estándares internacionales de diseño o corrientes estilísticas de alcance global.
+
+    REGLA GENERAL:
+    Construye cada respuesta de manera fluida, breve y conceptual en una sola línea.
+    Basá tus inferencias únicamente en lo visible en la imagen. No inventes ni asignes ubicaciones geográficas que no estén respaldadas por elementos gráficos o textuales presentes en la obra.
 
     La estructura del JSON debe ser exactamente:
     {{
         "analisis_simbolico": {{
-            "contexto_argentina": "Interpretación a nivel local argentino en una sola línea de texto.",
+            "contexto_argentina": "Análisis explícito si hay símbolos argentinos visibles. Si no los hay, escribir exactamente: Sin elementos de la iconografía o cultura local argentina.",
             "contexto_latam": "Interpretación a nivel regional latinoamericano en una sola línea de texto.",
             "contexto_global": "Interpretación a nivel universal o global en una sola línea de texto."
         }}
     }}
     """
     
-    # Consumo de la infraestructura centralizada
     resultado_vlm = consultar_minicpm_v(imagen_path, prompt_final)
-    
     
     if "error" in resultado_vlm:
         return resultado_vlm
         
-    
     return {
         "status": "success",
         "metrica": "Semiótica Simbólica (Peirce)",
