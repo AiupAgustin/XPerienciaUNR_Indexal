@@ -126,11 +126,11 @@ def ejec_iluminacion_y_punctum(imagen_path: str, categoria_pieza: str = "general
         desc_zonas = resultado_atencion.get("descripcion_textual_zonas", {})
         raw_heatmap = resultado_atencion.get("path_imagen_overlay")
         
-        # Formateo limpio a URI local (file:///C:/...) para WeasyPrint / HTML
+        # Formateo limpio como ruta absoluta o relativa simple (NO uses .as_uri())
         if raw_heatmap:
             p = Path(raw_heatmap).resolve()
             if p.exists():
-                heatmap_clean = p.as_uri()  # Genera 'file:///C:/.../heatmap_xyz.jpg'
+                heatmap_clean = str(p)  # Devuelve 'C:\tu\ruta\a\heatmap.jpg'
             else:
                 heatmap_clean = str(raw_heatmap).replace("\\", "/")
         else:
