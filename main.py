@@ -804,11 +804,11 @@ def render_galeria():
                 <span class="navbar-brand-text" translate="no">INDEXAL</span>
             </div>
             <div class="navbar-nav">
-                <div class="nav-item"  id="btnNavAnalisis">
+                <div class="nav-item" id="btnNavAnalisis">
                     <img src="{icon_chart_src}" class="nav-icon" alt="Análisis">
                     <span translate="no">Análisis</span>
                 </div>
-                <div class="nav-item">
+                <div class="nav-item" id="btnNavReportes">
                     <img src="{icon_doc_src}" class="nav-icon" alt="Reportes">
                     <span translate="no">Reportes</span>
                 </div>
@@ -880,13 +880,20 @@ def render_galeria():
                     allButtons[1].click();
                 }}
             }});
+
+            document.getElementById('btnNavReportes').addEventListener('click', function() {{
+                const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                if (allButtons.length > 2) {{
+                    allButtons[2].click();
+                }}
+            }});
         </script>
     """
 
     components.html(header_component, height=522)
 
     # 3. DISPARADORES OCULTOS
-    col_btn1, col_btn2 = st.columns(2)
+    col_btn1, col_btn2, col_btn3 = st.columns(3)
     with col_btn1:
         if st.button("\u200b", key="btn_hidden_nav_home"):
             st.session_state["pantalla_actual"] = "home"
@@ -894,6 +901,10 @@ def render_galeria():
     with col_btn2:
         if st.button("\u200b", key="btn_hidden_analizar"):
             st.session_state["pantalla_actual"] = "analizar"
+            st.rerun()
+    with col_btn3:
+        if st.button("\u200b", key="btn_hidden_nav_reportes"):
+            st.session_state["pantalla_actual"] = "reportes"
             st.rerun()
 
     # 4. CONSTRUCCIÓN DE CARDS DINÁMICAS (Con translate="no")
@@ -2322,9 +2333,54 @@ def render_analizar():
             // CONEXIÓN DIRECTA Y ROBUSTA DE SUBIDA
             // ----------------------------------------------------
             const uploadBox = document.getElementById('btnSubirBox');
+            
+            // 1. Click clásico para abrir el explorador de archivos
             uploadBox.addEventListener('click', function() {{
                 const fileInput = parentDoc.querySelector('div[data-testid="stFileUploader"] input[type="file"]');
                 if (fileInput) fileInput.click();
+            }});
+
+            // 2. Feedback visual y prevención al arrastrar sobre la caja
+            ['dragenter', 'dragover'].forEach(eventName => {{
+                uploadBox.addEventListener(eventName, function(e) {{
+                    e.preventDefault();
+                    e.stopPropagation();
+                    uploadBox.style.borderColor = '#0057FF';
+                    uploadBox.style.backgroundColor = '#F0F5FF';
+                }});
+            }});
+
+            ['dragleave', 'dragend'].forEach(eventName => {{
+                uploadBox.addEventListener(eventName, function(e) {{
+                    e.preventDefault();
+                    e.stopPropagation();
+                    uploadBox.style.borderColor = '#C4C6CF';
+                    uploadBox.style.backgroundColor = '#FFFFFF';
+                }});
+            }});
+
+            // 3. Captura del archivo al soltarlo (Drop)
+            uploadBox.addEventListener('drop', function(e) {{
+                e.preventDefault();
+                e.stopPropagation();
+                uploadBox.style.borderColor = '#C4C6CF';
+                uploadBox.style.backgroundColor = '#FFFFFF';
+
+                const dt = e.dataTransfer;
+                const files = dt ? dt.files : null;
+
+                if (files && files.length > 0) {{
+                    const fileInput = parentDoc.querySelector('div[data-testid="stFileUploader"] input[type="file"]');
+                    if (fileInput) {{
+                        // Transferir archivo al input file nativo de Streamlit
+                        const dataTransferObj = new DataTransfer();
+                        dataTransferObj.items.add(files[0]);
+                        fileInput.files = dataTransferObj.files;
+
+                        // Disparar evento para que Streamlit detecte el archivo
+                        fileInput.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                    }}
+                }}
             }});
 
             // Categorías (Paso 2)
@@ -2721,59 +2777,65 @@ def render_reportes():
         icon_settings=icon_settings,
     )
 
-    # 4. Mapeo dinámico de Categoría
-    MAPA_CATEGORIAS = {
-        "semiotico": "Semiótico",
-        "ui_ux": "UX / UI",
-        "packaging": "Packaging",
-        "tipografia": "Tipografía",
-        "logotipo": "Logotipo",
-        "afiche": "Afiche",
-    }
-    tipo_elegido_key = st.session_state.get("tipo_analisis", "semiotico")
-    categoria_txt = MAPA_CATEGORIAS.get(tipo_elegido_key, "Semiótico").upper()
+    # 4. Verificación de reporte activo
+    hay_reporte_activo = bool(ultimo_json and "metadata" in ultimo_json and "bloques" in ultimo_json)
 
-    # 5. Mapeo dinámico de Módulos seleccionados
-    MAPA_LETRAS_MODULOS = {
-        "composicion_visual": ("A", "Composición visual"),
-        "paleta_cromatica": ("B", "Paleta cromática"),
-        "iluminacion": ("C", "Iluminación"),
-        "semiotica_imagen": ("D", "Semiótica de la imagen"),
-        "retorica_visual": ("E", "Retórica visual"),
-        "contexto_denotacion": ("F", "Contexto y denotación"),
-    }
+    # 5. Mapeo dinámico de Categoría y Módulos
+    if hay_reporte_activo:
+        MAPA_CATEGORIAS = {
+            "semiotico": "Semiótico",
+            "ui_ux": "UX / UI",
+            "packaging": "Packaging",
+            "tipografia": "Tipografía",
+            "logotipo": "Logotipo",
+            "afiche": "Afiche",
+        }
+        tipo_elegido_key = st.session_state.get("tipo_analisis", "semiotico")
+        categoria_txt = MAPA_CATEGORIAS.get(tipo_elegido_key, "Semiótico").upper()
 
-    modulos_sel = st.session_state.get("modulos_seleccionados", [])
-    total_modulos_posibles = len(MAPA_LETRAS_MODULOS)
+        MAPA_LETRAS_MODULOS = {
+            "composicion_visual": ("A", "Composición visual"),
+            "paleta_cromatica": ("B", "Paleta cromática"),
+            "iluminacion": ("C", "Iluminación"),
+            "semiotica_imagen": ("D", "Semiótica de la imagen"),
+            "retorica_visual": ("E", "Retórica visual"),
+            "contexto_denotacion": ("F", "Contexto y denotación"),
+        }
 
-    if len(modulos_sel) == total_modulos_posibles:
-        modulo_txt = "COMPLETO (MÓDULOS A–F)"
-    elif len(modulos_sel) == 0:
-        modulo_txt = "TRANSVERSALES"
-    elif len(modulos_sel) == 1:
-        mod_id = modulos_sel[0]
-        letra, nombre = MAPA_LETRAS_MODULOS.get(
-            mod_id, ("A", mod_id.replace("_", " ").title())
-        )
-        modulo_txt = f"{letra} — {nombre.upper()}"
+        modulos_sel = st.session_state.get("modulos_seleccionados", [])
+        total_modulos_posibles = len(MAPA_LETRAS_MODULOS)
+
+        if len(modulos_sel) == total_modulos_posibles:
+            modulo_txt = "COMPLETO (MÓDULOS A–F)"
+        elif len(modulos_sel) == 0:
+            modulo_txt = "TRANSVERSALES"
+        elif len(modulos_sel) == 1:
+            mod_id = modulos_sel[0]
+            letra, nombre = MAPA_LETRAS_MODULOS.get(
+                mod_id, ("A", mod_id.replace("_", " ").title())
+            )
+            modulo_txt = f"{letra} — {nombre.upper()}"
+        else:
+            letras_activas = sorted(
+                [
+                    MAPA_LETRAS_MODULOS[m][0]
+                    for m in modulos_sel
+                    if m in MAPA_LETRAS_MODULOS
+                ]
+            )
+            modulo_txt = f"MÓDULOS {', '.join(letras_activas)}"
+
+        transversales_activos = []
+        if st.session_state.get("transversal_wcag", False):
+            transversales_activos.append("WCAG")
+        if st.session_state.get("transversal_historicas", False):
+            transversales_activos.append("HISTÓRICO")
+
+        if transversales_activos and len(modulos_sel) < total_modulos_posibles:
+            modulo_txt += f" + {'/'.join(transversales_activos)}"
     else:
-        letras_activas = sorted(
-            [
-                MAPA_LETRAS_MODULOS[m][0]
-                for m in modulos_sel
-                if m in MAPA_LETRAS_MODULOS
-            ]
-        )
-        modulo_txt = f"MÓDULOS {', '.join(letras_activas)}"
-
-    transversales_activos = []
-    if st.session_state.get("transversal_wcag", False):
-        transversales_activos.append("WCAG")
-    if st.session_state.get("transversal_historicas", False):
-        transversales_activos.append("HISTÓRICO")
-
-    if transversales_activos and len(modulos_sel) < total_modulos_posibles:
-        modulo_txt += f" + {'/'.join(transversales_activos)}"
+        categoria_txt = "-"
+        modulo_txt = "-"
 
     def calcular_tiempo_relativo(timestamp):
         diff = int(time.time() - timestamp)
@@ -2822,6 +2884,23 @@ def render_reportes():
         """
     else:
         html_seccion_historial = ""
+
+    pdf_bytes_actual = None
+    nombre_pdf_actual = "Diagnostico_indexal.pdf"
+    pdf_generado_exitosamente = False
+    
+    if ultimo_json and "metadata" in ultimo_json:
+        try:
+            ruta_temporal_pdf = os.path.join("assets", "reporte_temp.pdf")
+            generar_reporte_pdf(ultimo_json, ruta_temporal_pdf)
+            with open(ruta_temporal_pdf, "rb") as f:
+                pdf_bytes_actual = f.read()
+            nom_img = os.path.splitext(os.path.basename(ultimo_json.get("metadata", {}).get("imagen_path", "Analisis")))[0]
+            nombre_pdf_actual = f"Diagnostico_{nom_img}_indexal.pdf"
+            pdf_generado_exitosamente = True
+        except Exception as e:
+            print(f"Error generando PDF para descarga: {e}")
+            pdf_generado_exitosamente = False
 
     reportes_html = f"""
     <!DOCTYPE html>
@@ -3109,6 +3188,17 @@ def render_reportes():
                 height: 16px;
                 display: block;
                 filter: brightness(0) invert(1);
+            }}
+
+            .btn-export-pdf.disabled {{
+                background-color: #E5E7EB !important;
+                color: #9CA3AF !important;
+                cursor: not-allowed !important;
+                pointer-events: none !important;
+            }}
+
+            .btn-export-pdf.disabled .btn-export-icon {{
+                filter: brightness(0) opacity(0.3) !important;
             }}
 
             .report-sheet-container {{
@@ -3400,6 +3490,148 @@ def render_reportes():
             }}
 
             .footer-link:hover {{ text-decoration: underline; }}
+        
+            /* --- MODALES FLOTANTES POP-UP --- */
+            .modal-overlay {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(17, 17, 17, 0.45);
+                backdrop-filter: blur(2px);
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+                z-index: 999999;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.2s ease, visibility 0.2s ease;
+            }}
+
+            .modal-overlay.active {{
+                opacity: 1;
+                visibility: visible;
+            }}
+
+            .popup-card {{
+                position: relative;
+                width: 360px;
+                max-width: 90%;
+                border-radius: 16px;
+                padding: 28px 24px 24px 24px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                box-sizing: border-box;
+                transform: scale(0.95);
+                transition: transform 0.2s ease;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            }}
+
+            .modal-overlay.active .popup-card {{
+                transform: scale(1);
+            }}
+
+            .popup-card.success {{
+                background-color: #E6F7ED;
+                border: 1.5px solid #2FA36B;
+            }}
+
+            .popup-card.error {{
+                background-color: #FDF0F2;
+                border: 1.5px solid #C5445B;
+            }}
+
+            .popup-close-btn {{
+                position: absolute;
+                top: 14px;
+                right: 14px;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background-color: rgba(0, 0, 0, 0.04);
+                border: none;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background-color 0.2s ease;
+            }}
+
+            .popup-close-btn:hover {{
+                background-color: rgba(0, 0, 0, 0.08);
+            }}
+
+            .popup-close-btn svg {{
+                width: 12px;
+                height: 12px;
+                fill: #444748;
+            }}
+
+            .popup-icon-circle {{
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 14px;
+            }}
+
+            .popup-icon-circle.success {{
+                background-color: #2FA36B;
+            }}
+
+            .popup-icon-circle.error {{
+                background-color: #C5445B;
+            }}
+
+            .popup-icon-circle svg {{
+                width: 22px;
+                height: 22px;
+                fill: #FFFFFF;
+            }}
+
+            .popup-title {{
+                font-size: 15px;
+                font-weight: 700;
+                color: #111111;
+                margin: 0 0 10px 0;
+                letter-spacing: -0.2px;
+            }}
+
+            .popup-desc {{
+                font-size: 12.5px;
+                line-height: 1.45;
+                color: #5E6366;
+                margin: 0;
+            }}
+
+            .popup-desc b {{
+                color: #111111;
+                word-break: break-all;
+            }}
+
+            .btn-popup-retry {{
+                margin-top: 16px;
+                width: 100%;
+                padding: 10px 16px;
+                border-radius: 8px;
+                background-color: #C5445B;
+                color: #FFFFFF;
+                font-size: 13px;
+                font-weight: 600;
+                border: none;
+                cursor: pointer;
+                transition: opacity 0.2s ease;
+            }}
+
+            .btn-popup-retry:hover {{
+                opacity: 0.9;
+            }}
+
         </style>
     </head>
     <body>
@@ -3440,7 +3672,7 @@ def render_reportes():
                             <span>MÓDULO DE ANÁLISIS: <span class="report-meta-val">{modulo_txt}</span></span>
                         </div>
                     </div>
-                    <button class="btn-export-pdf" id="btnExportarPdf">
+                    <button class="btn-export-pdf {'disabled' if not hay_reporte_activo else ''}" id="btnExportarPdf">
                         <img src="{icon_print}" class="btn-export-icon" alt="Imprimir">
                         <span>Exportar a PDF</span>
                     </button>
@@ -3487,9 +3719,60 @@ def render_reportes():
             </main>
         </div>
 
+        <!-- OVERLAY MODAL ÉXITO -->
+        <div class="modal-overlay" id="modalExito">
+            <div class="popup-card success">
+                <button class="popup-close-btn" id="btnCloseExito">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="popup-icon-circle success">
+                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                </div>
+                <h4 class="popup-title">PDF generado y descargado</h4>
+                <p class="popup-desc">
+                    <b>{nombre_pdf_actual}</b> se guardó en tu carpeta de Descargas y quedó disponible en "Reportes de esta sesión".
+                </p>
+            </div>
+        </div>
+
+        <!-- OVERLAY MODAL ERROR -->
+        <div class="modal-overlay" id="modalError">
+            <div class="popup-card error">
+                <button class="popup-close-btn" id="btnCloseError">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="popup-icon-circle error">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                </div>
+                <h4 class="popup-title">Falla en generación del PDF</h4>
+                <p class="popup-desc">
+                    Ocurrió un error al exportar el reporte. Tus datos de análisis siguen disponibles.
+                </p>
+                <button class="btn-popup-retry" id="btnReintentarExport">
+                    Reintentar exportación
+                </button>
+            </div>
+        </div>
+
+        <!-- OVERLAY MODAL FEEDBACK ENVIADO -->
+        <div class="modal-overlay" id="modalFeedbackOk">
+            <div class="popup-card success">
+                <button class="popup-close-btn" id="btnCloseFeedback">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="popup-icon-circle success">
+                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                </div>
+                <h4 class="popup-title">¡Gracias por tu comentario!</h4>
+                <p class="popup-desc">
+                    Tu aporte nos ayuda a mejorar Indexal. Si dejaste tu email, te responderemos a la brevedad.
+                </p>
+            </div>
+        </div>
+
         <script>
             const parentDoc = window.parent.document;
-
+            
             function irAHome() {{
                 const allButtons = parentDoc.querySelectorAll('div.stButton button');
                 if (allButtons.length > 0) allButtons[0].click();
@@ -3507,19 +3790,100 @@ def render_reportes():
                 if (allButtons.length > 2) allButtons[2].click();
             }});
 
-            document.getElementById('btnExportarPdf').addEventListener('click', function() {{
-                // Dispara el botón de descarga principal de Streamlit
-                const dlBtn = parentDoc.querySelector('div[data-testid="stDownloadButton"] button');
-                if (dlBtn) dlBtn.click();
-            }});
+            const hayReporte = {'true' if hay_reporte_activo else 'false'};
+            const pdfExitoso = {'true' if pdf_generado_exitosamente else 'false'};
+            
+            const btnExp = document.getElementById('btnExportarPdf');
+            const modalExito = document.getElementById('modalExito');
+            const modalError = document.getElementById('modalError');
+            const modalFeedbackOk = document.getElementById('modalFeedbackOk');
+
+            function cerrarModales() {{
+                if (modalExito) modalExito.classList.remove('active');
+                if (modalError) modalError.classList.remove('active');
+                if (modalFeedbackOk) modalFeedbackOk.classList.remove('active');
+            }}
+
+            const btnCerrarOk = document.getElementById('btnCloseExito');
+            if (btnCerrarOk) btnCerrarOk.addEventListener('click', cerrarModales);
+
+            const btnCerrarErr = document.getElementById('btnCloseError');
+            if (btnCerrarErr) btnCerrarErr.addEventListener('click', cerrarModales);
+
+            const btnCerrarFeed = document.getElementById('btnCloseFeedback');
+            if (btnCerrarFeed) btnCerrarFeed.addEventListener('click', cerrarModales);
+
+            function posicionarModal(modalElem) {{
+                if (!modalElem) return;
+                
+                try {{
+                    // 1. Obtener la posición del iframe respecto a la pantalla visible del padre
+                    let iframeOffsetTop = 0;
+                    if (window.frameElement) {{
+                        const rect = window.frameElement.getBoundingClientRect();
+                        iframeOffsetTop = rect.top; // Distancia desde el borde superior de la pantalla hasta donde empieza el iframe
+                    }}
+
+                    // 2. Altura de la ventana visible del navegador
+                    const ventanaVisibleAlto = window.parent.innerHeight || window.innerHeight || 800;
+                    const centroPantalla = ventanaVisibleAlto / 2;
+
+                    // 3. La posición exacta dentro del iframe donde está mirando el usuario:
+                    // (Scroll actual respecto al iframe = Centro de la pantalla visible - inicio del iframe)
+                    const scrollActualEnIframe = (window.parent.scrollY || window.pageYOffset || 0) - (window.frameElement ? window.frameElement.offsetTop : 0);
+                    
+                    // Cálculo de marginTop compensado
+                    let posFinal = -iframeOffsetTop + centroPantalla - 140;
+
+                    // Si da negativo o falla la lectura entre ventanas cruzadas, fallback inteligente
+                    if (isNaN(posFinal) || posFinal < 40) {{
+                        const scrollTopParent = window.parent.scrollY || document.documentElement.scrollTop || 0;
+                        posFinal = Math.max(40, scrollTopParent + 200);
+                    }}
+
+                    const card = modalElem.querySelector('.popup-card');
+                    if (card) {{
+                        card.style.marginTop = Math.max(40, Math.round(posFinal)) + 'px';
+                    }}
+                }} catch (e) {{
+                    // Fallback de seguridad en caso de restricción de iframe
+                    const card = modalElem.querySelector('.popup-card');
+                    if (card) {{
+                        card.style.marginTop = '250px';
+                    }}
+                }}
+
+                modalElem.classList.add('active');
+            }}
+
+            function ejecutarExportacion() {{
+                cerrarModales();
+                if (!hayReporte) return;
+
+                if (pdfExitoso) {{
+                    const dlBtn = parentDoc.querySelector('div[data-testid="stDownloadButton"] button');
+                    if (dlBtn) dlBtn.click();
+                    posicionarModal(modalExito);
+                }} else {{
+                    posicionarModal(modalError);
+                }}
+            }}
+
+            if (btnExp && hayReporte) {{
+                btnExp.addEventListener('click', ejecutarExportacion);
+            }}
+
+            const btnReintentar = document.getElementById('btnReintentarExport');
+            if (btnReintentar) {{
+                btnReintentar.addEventListener('click', ejecutarExportacion);
+            }}
 
             document.getElementById('btnEnviarComentario').addEventListener('click', function() {{
                 const comment = document.getElementById('txtComentario').value;
                 if (comment.trim().length > 0) {{
                     document.getElementById('txtComentario').value = '';
                     document.getElementById('txtEmailFeedback').value = '';
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 3) allButtons[3].click();
+                    posicionarModal(modalFeedbackOk);
                 }}
             }});
 
@@ -3538,34 +3902,60 @@ def render_reportes():
     </html>
     """
 
-    # Altura del iframe adaptada al contenido
-    altura_hoja_web = 770 
-    
-    # 2. Calculamos
-    bloques_activos = ultimo_json.get("bloques", []) if ultimo_json else []
-    altura_reporte_principal = len(bloques_activos) * altura_hoja_web
-    altura_historial = len(lista_reportes) * 80
-    component_height = 900 + altura_reporte_principal + altura_historial
-    
-    components.html(reportes_html, height=component_height, scrolling=False)
+    # Cálculo proporcional adaptativo según contenido real
+    if not hay_reporte_activo:
+        component_height = 890 + (len(lista_reportes) * 80)
+    else:
+        # Base estructural: Stepper (70px) + Header (140px) + Feedback (310px) + Footer (70px) + Espaciados (160px)
+        altura_base = 750
+        
+        # Tabla de alturas según la carga visual y textual de cada módulo
+        ALTURAS_POR_MODULO = {
+            "composicion_visual": 1000,  # NO TOCAR VALOR
+            "paleta_cromatica": 900,     # NO TOCAR VALOR
+            "iluminacion": 1450,          # NO TOCAR VALOR
+            "semiotica_imagen": 1200,     # NO TOCAR VALOR
+            "retorica_visual": 1300,      # NO TOCAR VALOR
+            "contexto_denotacion": 1350,  # Nivel literal y contexto
+            "transversal_wcag": 600,     # Tabla de contraste de accesibilidad
+            "transversal_historicas": 600 # Referencias y movimientos históricos
+        }
+        
+        # Sumamos la altura individual de los módulos que realmente se ejecutaron
+        modulos_ejecutados = st.session_state.get("modulos_seleccionados", [])
+        altura_bloques_acumulada = 0
+        
+        for mod_id in modulos_ejecutados:
+            altura_bloques_acumulada += ALTURAS_POR_MODULO.get(mod_id, 850)
+            
+        if st.session_state.get("transversal_wcag"):
+            altura_bloques_acumulada += ALTURAS_POR_MODULO["transversal_wcag"]
+        if st.session_state.get("transversal_historicas"):
+            altura_bloques_acumulada += ALTURAS_POR_MODULO["transversal_historicas"]
+            
+        # Si por alguna razón no se detectaron IDs en session_state, usamos la cantidad de bloques en el JSON
+        if altura_bloques_acumulada == 0:
+            cant_bloques = len(ultimo_json.get("bloques", []))
+            altura_bloques_acumulada = cant_bloques * 850
 
-    # -------------------------------------------------------------------------
-    # GESTIÓN DE DESCARGAS DE PDF (WEASYPRINT) Y NAVEGACIÓN OCULTA
-    # -------------------------------------------------------------------------
-    # Botón de exportación del reporte activo actual
-    pdf_bytes_actual = None
-    nombre_pdf_actual = "Diagnostico_indexal.pdf"
-    
-    if ultimo_json and "metadata" in ultimo_json:
-        try:
-            ruta_temporal_pdf = os.path.join("assets", "reporte_temp.pdf")
-            generar_reporte_pdf(ultimo_json, ruta_temporal_pdf)
-            with open(ruta_temporal_pdf, "rb") as f:
-                pdf_bytes_actual = f.read()
-            nom_img = os.path.splitext(os.path.basename(ultimo_json.get("metadata", {}).get("imagen_path", "Analisis")))[0]
-            nombre_pdf_actual = f"Diagnostico_{nom_img}_indexal.pdf"
-        except Exception as e:
-            print(f"Error generando PDF para descarga: {e}")
+        total_items = len(modulos_ejecutados)
+        # Factor de escala según cantidad real de bloques en pantalla
+        if total_items <= 1:
+            factor_escala = 1.0     # 100% para 1 módulo individual
+        elif total_items == 2:
+            factor_escala = 0.75    # NO TOCAR DESC: 25%
+        elif total_items == 3:
+            factor_escala = 0.65    # NO TOCAR DESC: 35%
+        elif total_items == 4:
+            factor_escala = 0.60    # NO TOCAR DESC: 40%
+        else:
+            factor_escala = 0.57  # NO TOCAR DESC: 43%
+
+        altura_bloques_ajustada = int(altura_bloques_acumulada * factor_escala)
+        altura_historial = len(lista_reportes) * 80
+        component_height = altura_base + altura_bloques_ajustada + altura_historial
+
+    components.html(reportes_html, height=component_height, scrolling=False)
 
     # 1. Download Button invisible para el botón principal "Exportar a PDF"
     st.download_button(
@@ -3611,9 +4001,6 @@ def render_reportes():
         if st.button("\u200b", key="btn_hidden_rep_galeria"):
             st.session_state["pantalla_actual"] = "galeria"
             st.rerun()
-    with cols[3]:
-        if st.button("\u200b", key="btn_hidden_feedback_sent"):
-            st.toast("¡Muchas gracias! Tu comentario ha sido enviado con éxito.", icon="💬")
 
 # -----------------------------------------------------------------
 # CONTROLADOR PRINCIPAL DE VISTAS
