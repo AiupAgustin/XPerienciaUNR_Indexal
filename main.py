@@ -18,6 +18,46 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CARPETA_IMAGENES = os.path.join(BASE_DIR, "assets", "imagenes")
 
 # -----------------------------------------------------------------
+# FUNCIÓN AUXILIAR GLOBAL: Para ubicar los popups en el centro de la pantalla
+# -----------------------------------------------------------------
+
+def obtener_js_posicionamiento_modal():
+    """Retorna el script JS universal para centrar y posicionar cualquier modal
+
+    en la vista del usuario dentro de un iframe de Streamlit.
+    """
+    return """
+    function posicionarModal(modalElem) {
+        if (!modalElem) return;
+        try {
+            let iframeOffsetTop = 0;
+            if (window.frameElement) {
+                const rect = window.frameElement.getBoundingClientRect();
+                iframeOffsetTop = rect.top;
+            }
+            const ventanaVisibleAlto = window.parent.innerHeight || window.innerHeight || 800;
+            const centroPantalla = ventanaVisibleAlto / 2;
+            let posFinal = -iframeOffsetTop + centroPantalla - 200;
+
+            if (isNaN(posFinal) || posFinal < 40) {
+                const scrollTopParent = window.parent.scrollY || document.documentElement.scrollTop || 0;
+                posFinal = Math.max(40, scrollTopParent + 120);
+            }
+
+            const card = modalElem.querySelector('.popup-card, .welcome-card');
+            if (card) {
+                card.style.marginTop = Math.max(40, Math.round(posFinal)) + 'px';
+            }
+        } catch (e) {
+            const card = modalElem.querySelector('.popup-card, .welcome-card');
+            if (card) {
+                card.style.marginTop = '120px';
+            }
+        }
+    }
+    """
+
+# -----------------------------------------------------------------
 # FUNCIÓN AUXILIAR GLOBAL: CONVERTIR SVG A BASE64
 # -----------------------------------------------------------------
 def cargar_svg_base64(ruta_relativa):
@@ -1208,6 +1248,10 @@ def render_galeria():
 # PANTALLA 4: NUEVO ANÁLISIS
 # -----------------------------------------------------------------
 def render_analizar():
+
+    if "terminos_aceptados" not in st.session_state:
+        st.session_state["terminos_aceptados"] = False
+
     if "paso_actual" not in st.session_state:
         st.session_state["paso_actual"] = 1
     if "tipo_analisis" not in st.session_state:
@@ -1489,6 +1533,9 @@ def render_analizar():
     icon_crop = cargar_svg_base64("assets/iconos/crop_original.svg")
     icon_access = cargar_svg_base64("assets/iconos/icon-access.svg")
     icon_star = cargar_svg_base64("assets/iconos/stars.svg")
+    logo_bienvenida = cargar_svg_base64("assets/iconos/logo_popup_bienvenida.svg")
+    modal_bienvenida_activo = "active" if not st.session_state["terminos_aceptados"] else ""
+    js_posicionador = obtener_js_posicionamiento_modal()
 
     sidebar_html = obtener_sidebar_html(
         item_activo="nuevo",
@@ -2167,6 +2214,163 @@ def render_analizar():
             .footer-links {{ display: flex; gap: 20px; }}
             .footer-link {{ color: #0057FF; font-size: 12px; font-weight: 500; text-decoration: none; }}
             .footer-link:hover {{ text-decoration: underline; }}
+
+            /* --- MODAL DE BIENVENIDA / TÉRMINOS --- */
+            .modal-overlay {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(17, 17, 17, 0.45);
+                backdrop-filter: blur(3px);
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+                z-index: 999999;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.25s ease, visibility 0.25s ease;
+            }}
+
+            .modal-overlay.active {{
+                opacity: 1;
+                visibility: visible;
+            }}
+
+            .welcome-card {{
+                position: relative;
+                width: 440px;
+                max-width: 90%;
+                background: #FFFFFF;
+                border-radius: 20px;
+                padding: 36px 32px 32px 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                box-sizing: border-box;
+                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+                transform: scale(0.95);
+                transition: transform 0.25s ease;
+            }}
+
+            .modal-overlay.active .welcome-card {{
+                transform: scale(1);
+            }}
+
+            .welcome-logo-badge {{
+                width: 58px;
+                height: 58px;
+                min-width: 58px;
+                min-height: 58px;
+                border-radius: 14px;
+                background-color: #0057FF;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 20px;
+            }}
+
+            .welcome-logo-img {{
+                width: 32px;
+                height: 32px;
+                display: block;
+            }}
+
+            .welcome-badge-text {{
+                color: #444748;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 1.5px;
+                text-transform: uppercase;
+                margin: 0 0 8px 0;
+            }}
+
+            .welcome-title {{
+                color: #111111;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 24px;
+                font-weight: 700;
+                letter-spacing: -0.5px;
+                margin: 0 0 16px 0;
+            }}
+
+            .welcome-desc {{
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 14px;
+                line-height: 1.55;
+                color: #444748;
+                margin: 0 0 24px 0;
+                font-weight: 400;
+            }}
+
+            .welcome-divider {{
+                width: 100%;
+                height: 1px;
+                background-color: #E5E7EB;
+                margin-bottom: 20px;
+            }}
+
+            .welcome-accept-box {{
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                width: 100%;
+                padding: 16px 18px;
+                border-radius: 12px;
+                border: 1.5px solid #0057FF;
+                background-color: #EDF3FF;
+                cursor: pointer;
+                box-sizing: border-box;
+                text-align: left;
+                user-select: none;
+                transition: background-color 0.15s ease, transform 0.1s ease;
+            }}
+
+            .welcome-accept-box:hover {{
+                background-color: #E2ECFF;
+            }}
+
+            .welcome-accept-box:active {{
+                transform: scale(0.99);
+            }}
+
+            .welcome-checkbox {{
+                width: 22px;
+                height: 22px;
+                min-width: 22px;
+                min-height: 22px;
+                border-radius: 6px;
+                border: 2px solid #0057FF;
+                background-color: #FFFFFF;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }}
+
+            .welcome-accept-text {{
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 13.5px;
+                line-height: 1.4;
+                color: #444748;
+                font-weight: 400;
+                margin: 0;
+            }}
+
+            .welcome-link-btn {{
+                color: #0057FF;
+                font-weight: 600;
+                text-decoration: none;
+                cursor: pointer;
+            }}
+
+            .welcome-link-btn:hover {{
+                text-decoration: underline;
+            }}
+
         </style>
     </head>
     <body>
@@ -2343,7 +2547,36 @@ def render_analizar():
             </main>
         </div>
 
+            <!-- POPUP DE BIENVENIDA Y TÉRMINOS -->
+        <div class="modal-overlay {modal_bienvenida_activo}" id="modalBienvenida">
+            <div class="welcome-card">
+                <div class="welcome-logo-badge">
+                    <img src="{logo_bienvenida}" class="welcome-logo-img" alt="Indexal">
+                </div>
+                <span class="welcome-badge-text">HERRAMIENTA EXPERIMENTAL</span>
+                <h3 class="welcome-title">Bienvenido a Indexal</h3>
+                <p class="welcome-desc">
+                    Indexal es una herramienta de diagnóstico semiótico y técnico de piezas visuales, asistida por inteligencia artificial. Antes de continuar, confirmá que leíste y aceptás nuestros términos y condiciones.
+                </p>
+                <div class="welcome-divider"></div>
+
+                <div class="welcome-accept-box" id="btnAceptarTerminosBox">
+                    <div class="welcome-checkbox" id="chkBoxTerminos"></div>
+                    <p class="welcome-accept-text">
+                        Acepto los <a href="javascript:void(0)" class="welcome-link-btn" id="lnkTerminosServicio">términos del servicio</a> y la <a href="javascript:void(0)" class="welcome-link-btn" id="lnkPoliticaPrivacidad">política de privacidad de Indexal</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <script>
+            {js_posicionador}
+
+            const modalBienv = document.getElementById('modalBienvenida');
+            if (modalBienv && modalBienv.classList.contains('active')) {{
+                posicionarModal(modalBienv);
+            }}
+
             const parentDoc = window.parent.document;
             const paso2Permitido = {'true' if paso2_habilitado else 'false'};
             const paso3Permitido = {'true' if paso3_habilitado else 'false'};
@@ -2365,6 +2598,38 @@ def render_analizar():
                 const allButtons = parentDoc.querySelectorAll('div.stButton button');
                 if (allButtons.length > 2) allButtons[2].click();
             }});
+
+            // Gestión del click de aceptación de términos
+            const btnAceptarTerminos = document.getElementById('btnAceptarTerminosBox');
+            if (btnAceptarTerminos) {{
+                btnAceptarTerminos.addEventListener('click', function(e) {{
+                    if (e.target.id === 'lnkTerminosServicio' || e.target.id === 'lnkPoliticaPrivacidad') {{
+                        return;
+                    }}
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxTerminos = {14 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxTerminos) {{
+                        allButtons[idxTerminos].click();
+                    }}
+                }});
+            }}
+
+            // Triggers preparados para los futuros popups
+            const lnkTerminos = document.getElementById('lnkTerminosServicio');
+            if (lnkTerminos) {{
+                lnkTerminos.addEventListener('click', function(e) {{
+                    e.stopPropagation();
+                    console.log("Abrir popup de Términos del servicio");
+                }});
+            }}
+
+            const lnkPrivacidad = document.getElementById('lnkPoliticaPrivacidad');
+            if (lnkPrivacidad) {{
+                lnkPrivacidad.addEventListener('click', function(e) {{
+                    e.stopPropagation();
+                    console.log("Abrir popup de Política de privacidad");
+                }});
+            }}
 
             // ----------------------------------------------------
             // CONEXIÓN DIRECTA Y ROBUSTA DE SUBIDA
@@ -2533,7 +2798,7 @@ def render_analizar():
 
     # Botones ocultos de navegación y estado
     botones_modulos_count = len(lista_modulos_activa)
-    columnas_totales = st.columns(14 + botones_modulos_count)
+    columnas_totales = st.columns(15 + botones_modulos_count)
 
     # 1. Navegación del Menú Lateral (0, 1, 2)
     with columnas_totales[0]:
@@ -2700,6 +2965,13 @@ def render_analizar():
                 st.session_state["pantalla_actual"] = "reportes"
                 st.rerun()
 
+
+    # 8. Botón invisible para Aceptar Términos de Bienvenida
+    with columnas_totales[idx_transversal + 3]:
+        if st.button("\u200b", key="btn_hidden_aceptar_terminos"):
+            st.session_state["terminos_aceptados"] = True
+            st.rerun()
+
 # -----------------------------------------------------------------
 # PANTALLA 5: REPORTES
 # -----------------------------------------------------------------
@@ -2811,6 +3083,7 @@ def render_reportes():
     icon_settings = cargar_svg_base64("assets/iconos/settings.svg")
     icon_print = cargar_svg_base64("assets/iconos/print.svg")
     icon_download = cargar_svg_base64("assets/iconos/download.svg")
+    js_posicionador = obtener_js_posicionamiento_modal()
 
     sidebar_html = obtener_sidebar_html(
         item_activo="reportes",
@@ -3858,46 +4131,11 @@ def render_reportes():
             const btnCerrarFeed = document.getElementById('btnCloseFeedback');
             if (btnCerrarFeed) btnCerrarFeed.addEventListener('click', cerrarModales);
 
-            function posicionarModal(modalElem) {{
+            {js_posicionador}
+
+            function abrirModalPosicionado(modalElem) {{
                 if (!modalElem) return;
-                
-                try {{
-                    // 1. Obtener la posición del iframe respecto a la pantalla visible del padre
-                    let iframeOffsetTop = 0;
-                    if (window.frameElement) {{
-                        const rect = window.frameElement.getBoundingClientRect();
-                        iframeOffsetTop = rect.top; // Distancia desde el borde superior de la pantalla hasta donde empieza el iframe
-                    }}
-
-                    // 2. Altura de la ventana visible del navegador
-                    const ventanaVisibleAlto = window.parent.innerHeight || window.innerHeight || 800;
-                    const centroPantalla = ventanaVisibleAlto / 2;
-
-                    // 3. La posición exacta dentro del iframe donde está mirando el usuario:
-                    // (Scroll actual respecto al iframe = Centro de la pantalla visible - inicio del iframe)
-                    const scrollActualEnIframe = (window.parent.scrollY || window.pageYOffset || 0) - (window.frameElement ? window.frameElement.offsetTop : 0);
-                    
-                    // Cálculo de marginTop compensado
-                    let posFinal = -iframeOffsetTop + centroPantalla - 140;
-
-                    // Si da negativo o falla la lectura entre ventanas cruzadas, fallback inteligente
-                    if (isNaN(posFinal) || posFinal < 40) {{
-                        const scrollTopParent = window.parent.scrollY || document.documentElement.scrollTop || 0;
-                        posFinal = Math.max(40, scrollTopParent + 200);
-                    }}
-
-                    const card = modalElem.querySelector('.popup-card');
-                    if (card) {{
-                        card.style.marginTop = Math.max(40, Math.round(posFinal)) + 'px';
-                    }}
-                }} catch (e) {{
-                    // Fallback de seguridad en caso de restricción de iframe
-                    const card = modalElem.querySelector('.popup-card');
-                    if (card) {{
-                        card.style.marginTop = '250px';
-                    }}
-                }}
-
+                posicionarModal(modalElem);
                 modalElem.classList.add('active');
             }}
 
@@ -3912,9 +4150,9 @@ def render_reportes():
                     const nameElem = document.getElementById('popupSuccessFileName');
                     if (nameElem) nameElem.textContent = '{nombre_pdf_actual}';
                     
-                    posicionarModal(modalExito);
+                    abrirModalPosicionado(modalExito);
                 }} else {{
-                    posicionarModal(modalError);
+                    abrirModalPosicionado(modalError);
                 }}
             }}
 
@@ -3932,7 +4170,7 @@ def render_reportes():
                 if (comment.trim().length > 0) {{
                     document.getElementById('txtComentario').value = '';
                     document.getElementById('txtEmailFeedback').value = '';
-                    posicionarModal(modalFeedbackOk);
+                    abrirModalPosicionado(modalFeedbackOk);
                 }}
             }});
 
@@ -3949,9 +4187,9 @@ def render_reportes():
                         const nameElem = document.getElementById('popupSuccessFileName');
                         if (nameElem) nameElem.textContent = '{rep["archivo"]}';
                         
-                        posicionarModal(modalExito);
+                        abrirModalPosicionado(modalExito);
                     }}}} else {{{{
-                        posicionarModal(modalError);
+                        abrirModalPosicionado(modalError);
                     }}}}
                 }}}});
             }}}}
