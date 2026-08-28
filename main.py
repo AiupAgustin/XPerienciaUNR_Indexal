@@ -2921,7 +2921,9 @@ def render_analizar():
                 cat_str = st.session_state.get("tipo_analisis", "semiotico")
                 cat_id = MAPA_CATEGORIA_A_ID.get(cat_str, 0)
 
-                modulos_a_ejecutar = list(st.session_state.get("modulos_seleccionados", []))
+                seleccion_actual = st.session_state.get("modulos_seleccionados", [])
+                modulos_a_ejecutar = [m_id for m_id in todos_los_ids if m_id in seleccion_actual]
+
                 if st.session_state.get("transversal_wcag"):
                     modulos_a_ejecutar.append("transversal_wcag")
                 if st.session_state.get("transversal_historicas"):
