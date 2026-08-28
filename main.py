@@ -224,7 +224,7 @@ def registrar_analisis_galeria(
 
         elif tiene_wcag and tiene_hist:
             modulo_txt = "Módulos transversales · WCAG e Historia"
-            
+
         elif tiene_wcag:
             modulo_txt = "Módulo Accesibilidad · WCAG 2.1"
 
@@ -3775,7 +3775,7 @@ def render_reportes():
                 </div>
                 <h4 class="popup-title">PDF generado y descargado</h4>
                 <p class="popup-desc">
-                    <b>{nombre_pdf_actual}</b> se guardó en tu carpeta de Descargas y quedó disponible en "Reportes de esta sesión".
+                    <b id="popupSuccessFileName">{nombre_pdf_actual}</b> se guardó en tu carpeta de Descargas y quedó disponible en "Reportes de esta sesión".
                 </p>
             </div>
         </div>
@@ -3908,6 +3908,10 @@ def render_reportes():
                 if (pdfExitoso) {{
                     const dlBtn = parentDoc.querySelector('div[data-testid="stDownloadButton"] button');
                     if (dlBtn) dlBtn.click();
+                    
+                    const nameElem = document.getElementById('popupSuccessFileName');
+                    if (nameElem) nameElem.textContent = '{nombre_pdf_actual}';
+                    
                     posicionarModal(modalExito);
                 }} else {{
                     posicionarModal(modalError);
@@ -3932,16 +3936,26 @@ def render_reportes():
                 }}
             }});
 
-            // Descargas de las filas de la sesión
+            // Descargas de las filas de la sesión con popup dinámico
             { "".join([f"""
             const btnDown_{i} = document.getElementById('btnDownloadRow_{i}');
-            if (btnDown_{i}) {{
-                btnDown_{i}.addEventListener('click', function() {{
+            if (btnDown_{i}) {{{{
+                btnDown_{i}.addEventListener('click', function() {{{{
+                    cerrarModales();
                     const dlBtns = parentDoc.querySelectorAll('div.stDownloadButton button');
-                    if (dlBtns.length > {1 + i}) dlBtns[{1 + i}].click();
-                }});
-            }}
-            """ for i in range(len(lista_reportes))]) }
+                    if (dlBtns.length > {1 + i}) {{{{
+                        dlBtns[{1 + i}].click();
+                        
+                        const nameElem = document.getElementById('popupSuccessFileName');
+                        if (nameElem) nameElem.textContent = '{rep["archivo"]}';
+                        
+                        posicionarModal(modalExito);
+                    }}}} else {{{{
+                        posicionarModal(modalError);
+                    }}}}
+                }}}});
+            }}}}
+            """ for i, rep in enumerate(lista_reportes)]) }
         </script>
     </body>
     </html>
