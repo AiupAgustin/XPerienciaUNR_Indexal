@@ -7,6 +7,7 @@ import base64
 import streamlit as st
 import streamlit.components.v1 as components
 import json
+import math
 from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_ID
 from core.reportes.generador_html import renderizar_reporte_html
 from core.reportes.generador_pdf import generar_reporte_pdf
@@ -399,9 +400,10 @@ def render_home():
 # -----------------------------------------------------------------
 
 def render_galeria():
+    import math
+
     st.markdown(
         """
-        <!-- Inyección directa de Google Fonts al head del documento -->
         <script>
             if (!parent.document.getElementById('font-space-grotesk')) {
                 const link = parent.document.createElement('link');
@@ -415,7 +417,6 @@ def render_galeria():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-        /* 1. Forzar tipografía global en todo el árbol de Streamlit */
         html, body, [class*="css"], .stApp, .stApp * {
             font-family: 'Space Grotesk', -apple-system, sans-serif !important;
         }
@@ -424,10 +425,7 @@ def render_galeria():
             background-color: #EAEAE8 !important;
         }
 
-        /* 2. Eliminar header y márgenes superiores de Streamlit */
-        header[data-testid="stHeader"],
-        header,
-        .stAppHeader { 
+        header[data-testid="stHeader"], header, .stAppHeader { 
             display: none !important; 
             height: 0px !important;
             visibility: hidden !important;
@@ -438,9 +436,7 @@ def render_galeria():
         div[data-testid="stAppViewContainer"],
         div[data-testid="stAppViewBlockContainer"],
         div[data-testid="stMainBlockContainer"],
-        section.main,
-        .stMain,
-        .main {
+        section.main, .stMain, .main {
             padding: 0px !important;
             margin: 0px !important;
             min-height: auto !important;
@@ -448,8 +444,7 @@ def render_galeria():
             background-color: #EAEAE8 !important;
         }
 
-        .block-container,
-        div[data-testid="block-container"] {
+        .block-container, div[data-testid="block-container"] {
             max-width: 100% !important;
             width: 100% !important;
             padding: 0px !important;
@@ -465,9 +460,7 @@ def render_galeria():
             padding-top: 0px !important;
         }
 
-        /* 3. OCULTAR BOTONES NATIVOS DISPARADORES DE STREAMLIT */
-        div.stButton,
-        div[data-testid="stElementContainer"]:has(div.stButton) {
+        div.stButton, div[data-testid="stElementContainer"]:has(div.stButton) {
             display: none !important;
             visibility: hidden !important;
             position: absolute !important;
@@ -480,7 +473,7 @@ def render_galeria():
             overflow: hidden !important;
         }
         </style>
-    """,
+        """,
         unsafe_allow_html=True,
     )
 
@@ -488,101 +481,118 @@ def render_galeria():
     icon_chart_src = cargar_svg_base64("assets/iconos/icon-nav-chart.svg")
     icon_doc_src = cargar_svg_base64("assets/iconos/icon-nav-doc.svg")
     icon_arrow_src = cargar_svg_base64("assets/iconos/vector.svg")
-    icon_flag_src = cargar_svg_base64("assets/iconos/icon-flag.svg")
-    icon_eye_off_src = cargar_svg_base64("assets/iconos/visibility_off.svg")
 
-    # Mock data para maquetar
+    # MOCK DATA CON NOMBRES DE CATEGORÍA CORREGIDOS
     INFORMES_MOCK = [
         {
             "id": "inf_01",
-            "categoria": "SEMIÓTICO",
-            "titulo": "Sistema de identidad · Estudio Norma",
-            "descripcion": (
-                "Sistema de identidad completo con aplicaciones en distintos"
-                " soportes"
-            ),
-            "tag": "Semiótico",
-            "modulo": "Módulo A · Semiótico",
+            "categoria": "Semiótico",
+            "filtro_key": "semiotico",
+            "descripcion": "Sistema de identidad completo con aplicaciones en distintos soportes",
+            "modulo": "Análisis completo · 6 módulos",
             "color_placeholder": "#E6C2B4",
+            "imagen_url": None,
         },
         {
             "id": "inf_02",
             "categoria": "UI / UX",
-            "titulo": "Interfaz móvil · App de salud",
-            "descripcion": (
-                "Pantalla principal con sistema de navegación y visualización"
-                " de datos"
-            ),
-            "tag": "Semiótico",
-            "modulo": "Módulo A · Semiótico",
+            "filtro_key": "ui_ux",
+            "descripcion": "Pantalla principal con sistema de navegación y visualización de datos",
+            "modulo": "Módulo A · Composición visual",
             "color_placeholder": "#6B7280",
+            "imagen_url": None,
         },
         {
             "id": "inf_03",
-            "categoria": "PACKAGING",
-            "titulo": "Colección orgánica · Vitamins",
-            "descripcion": (
-                "Packaging minimalista con código cromático funcional para"
-                " línea premium"
-            ),
-            "tag": "Semiótico",
-            "modulo": "Módulo A · Semiótico",
+            "categoria": "Packaging",
+            "filtro_key": "packaging",
+            "descripcion": "Packaging minimalista con código cromático funcional para línea premium",
+            "modulo": "Módulo B · Paleta cromática",
             "color_placeholder": "#36635C",
+            "imagen_url": None,
         },
         {
             "id": "inf_04",
-            "categoria": "TIPOGRAFÍA",
-            "titulo": "Sistema tipográfico · Editorial",
-            "descripcion": (
-                "Jerarquía tipográfica para publicación impresa y digital"
-            ),
-            "tag": "Semiótico",
-            "modulo": "Módulo A · Semiótico",
+            "categoria": "Tipografía",
+            "filtro_key": "tipografia",
+            "descripcion": "Jerarquía tipográfica para publicación impresa y digital",
+            "modulo": "Módulos A, B, C · Visual",
             "color_placeholder": "#C8C4B7",
+            "imagen_url": None,
         },
         {
             "id": "inf_05",
-            "categoria": "LOGOTIPO",
-            "titulo": "Identidad de marca · Kaia",
-            "descripcion": (
-                "Construcción de isotipo y aplicaciones sobre fondo oscuro"
-            ),
-            "tag": "Semiótico",
-            "modulo": "Módulo A · Semiótico",
+            "categoria": "Logotipo",
+            "filtro_key": "logotipo",
+            "descripcion": "Construcción de isotipo y aplicaciones sobre fondo oscuro",
+            "modulo": "Análisis completo · 6 módulos",
             "color_placeholder": "#282B30",
+            "imagen_url": None,
         },
         {
             "id": "inf_06",
-            "categoria": "AFICHES",
-            "titulo": "Campaña gráfica · Festival Sur",
+            "categoria": "Afiches",
+            "filtro_key": "afiches",
             "descripcion": "Serie de afiches con sistema modular de retícula",
-            "tag": "Semiótico",
-            "modulo": "Módulo A · Semiótico",
+            "modulo": "Módulo E · Retórica visual",
             "color_placeholder": "#D8A75F",
+            "imagen_url": None,
         },
     ]
 
-    cant_semiotico = 1
-    cant_logotipo = 1
-    cant_afiches = 1
-    cant_packaging = 1
-    cant_tipografia = 1
-    cant_uiux = 1
+    # Conteo dinámico de categorías
+    cant_semiotico = sum(1 for x in INFORMES_MOCK if x["filtro_key"] == "semiotico")
+    cant_logotipo = sum(1 for x in INFORMES_MOCK if x["filtro_key"] == "logotipo")
+    cant_afiches = sum(1 for x in INFORMES_MOCK if x["filtro_key"] == "afiches")
+    cant_packaging = sum(1 for x in INFORMES_MOCK if x["filtro_key"] == "packaging")
+    cant_tipografia = sum(1 for x in INFORMES_MOCK if x["filtro_key"] == "tipografia")
+    cant_uiux = sum(1 for x in INFORMES_MOCK if x["filtro_key"] == "ui_ux")
 
-    # 2. HTML + CSS + JS DE LA CABECERA
-    header_component = f"""
+    # Construcción dinámica de tarjetas
+    cards_html = ""
+    for item in INFORMES_MOCK:
+        # Si tiene imagen real la muestra; si no, usa el placeholder cromático
+        if item.get("imagen_url"):
+            area_visual = f'<div class="card-image-area" style="background-image: url(\'{item["imagen_url"]}\'); background-size: cover; background-position: center;"></div>'
+        else:
+            area_visual = f'<div class="card-image-area" style="background-color: {item.get("color_placeholder", "#E5E7EB")};"></div>'
+
+        cards_html += f"""
+        <div class="card-item notranslate" data-category="{item['filtro_key']}" translate="no">
+            {area_visual}
+            <div class="card-body">
+                <h3 class="card-title" translate="no">{item['categoria']}</h3>
+                <p class="card-desc" translate="no">{item['descripcion']}</p>
+                <div class="card-footer-row">
+                    <span class="card-module-text" translate="no">{item['modulo']}</span>
+                </div>
+            </div>
+        </div>
+        """
+
+    # HTML Unificado
+    galeria_unificada_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
-            * {{ box-sizing: border-box; }}
+            * {{
+                box-sizing: border-box;
+                font-family: 'Space Grotesk', sans-serif !important;
+                -webkit-font-smoothing: antialiased;
+            }}
 
             html, body {{
                 margin: 0 !important;
                 padding: 0 !important;
                 background-color: #EAEAE8 !important;
                 width: 100% !important;
-                overflow: hidden !important;
-                user-select: none;
+                min-height: 100vh !important;
+                display: flex;
+                flex-direction: column;
             }}
 
             /* NAVBAR */
@@ -594,6 +604,7 @@ def render_galeria():
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                flex-shrink: 0;
             }}
 
             .navbar-brand {{
@@ -615,10 +626,9 @@ def render_galeria():
 
             .navbar-brand-text {{
                 color: #FFFFFF;
-                font-family: 'Orbitron', sans-serif;
+                font-family: 'Orbitron', sans-serif !important;
                 font-size: 17px;
                 font-weight: 700;
-                line-height: 21px;
             }}
 
             .navbar-nav {{
@@ -631,10 +641,8 @@ def render_galeria():
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                font-family: 'Space Grotesk', sans-serif;
                 font-size: 13.5px;
                 font-weight: 400;
-                line-height: 17px;
                 color: #BFC4CC;
                 cursor: pointer;
                 transition: color 0.2s ease;
@@ -656,6 +664,7 @@ def render_galeria():
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-end;
+                flex-shrink: 0;
             }}
 
             .hero-text-block {{
@@ -665,37 +674,30 @@ def render_galeria():
 
             .hero-badge {{
                 color: #0057FF;
-                font-family: 'Orbitron', sans-serif;
+                font-family: 'Orbitron', sans-serif !important;
                 font-size: 14px;
                 font-weight: 700;
-                line-height: 18px;
                 letter-spacing: 4.2px;
                 margin: 0;
             }}
 
             .hero-title {{
                 color: #111111;
-                font-family: 'Space Grotesk', sans-serif;
                 font-size: 64px;
                 font-weight: 700;
-                line-height: 64px;
+                line-height: 1;
                 letter-spacing: -1.6px;
-                margin-top: 16px;
-                margin-bottom: 0;
+                margin: 16px 0 0 0;
             }}
 
             .hero-subtitle {{
                 color: #444748;
-                font-family: 'Space Grotesk', sans-serif;
                 font-size: 15px;
                 font-weight: 400;
-                line-height: 19px;
                 letter-spacing: 0.8px;
-                margin-top: 16px;
-                margin-bottom: 0;
+                margin: 16px 0 0 0;
             }}
 
-            /* BOTÓN ANALIZAR MI IMAGEN */
             .hero-btn-action {{
                 display: flex;
                 align-items: center;
@@ -705,7 +707,6 @@ def render_galeria():
                 border-radius: 8px;
                 border: none;
                 cursor: pointer;
-                text-decoration: none;
                 transition: background-color 0.2s ease, transform 0.1s ease;
             }}
 
@@ -714,10 +715,8 @@ def render_galeria():
 
             .hero-btn-text {{
                 color: #FFFFFF;
-                font-family: 'Space Grotesk', sans-serif;
                 font-size: 16.5px;
                 font-weight: 700;
-                line-height: 21px;
             }}
 
             .hero-btn-icon {{
@@ -736,68 +735,168 @@ def render_galeria():
                 align-items: center;
                 gap: 12px;
                 overflow-x: auto;
-            }}
-
-            .filter-pill-active {{
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                height: 33px;
-                padding: 8px 16px;
-                background-color: #0057FF;
-                border-radius: 999px;
-                color: #FFFFFF;
-                font-family: 'Space Grotesk', sans-serif;
-                font-size: 13px;
-                font-weight: 700;
-                line-height: 17px;
-                cursor: pointer;
-                border: none;
-                user-select: none;
-                transition: background-color 0.2s ease;
                 flex-shrink: 0;
             }}
 
-            .filter-pill-active:hover {{ background-color: #0046D5; }}
-
-            .filter-pill-inactive {{
+            .filter-btn {{
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
                 gap: 8px;
                 height: 33px;
                 padding: 8px 16px;
-                background-color: #FFFFFF;
-                border: 1px solid #C4C6CF;
                 border-radius: 999px;
                 cursor: pointer;
                 user-select: none;
-                transition: background-color 0.2s ease, border-color 0.2s ease;
+                border: 1px solid #C4C6CF;
+                background-color: #FFFFFF;
+                color: #111111;
+                font-size: 13px;
+                font-weight: 500;
+                transition: all 0.2s ease;
                 flex-shrink: 0;
+                outline: none;
             }}
 
-            .filter-pill-inactive:hover {{
+            .filter-btn:hover {{
                 background-color: #F8F9FA;
                 border-color: #A8ACB4;
             }}
 
-            .filter-pill-label {{
-                color: #111111;
-                font-family: 'Space Grotesk', sans-serif;
-                font-size: 13px;
-                font-weight: 500;
-                line-height: 17px;
+            .filter-btn.active {{
+                background-color: #0057FF !important;
+                border-color: #0057FF !important;
+                color: #FFFFFF !important;
+                font-weight: 700 !important;
+            }}
+
+            .filter-btn.active .filter-pill-count {{
+                color: #FFFFFF !important;
             }}
 
             .filter-pill-count {{
                 color: #444748;
-                font-family: 'Space Grotesk', sans-serif;
                 font-size: 12px;
                 font-weight: 400;
-                line-height: 15px;
             }}
-        </style>
 
+            /* GRILLA */
+            .galeria-section-container {{
+                width: 100%;
+                background-color: #EAEAE8;
+                padding: 24px 48px 48px 48px;
+                flex: 1;
+            }}
+
+            .galeria-grid {{
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 20px;
+                width: 100%;
+            }}
+
+            .card-item {{
+                background-color: #FFFFFF;
+                border-radius: 12px;
+                border: 1px solid #C4C6CF;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                cursor: pointer;
+                transition: transform 0.15s ease, box-shadow 0.15s ease;
+            }}
+
+            .card-item:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+            }}
+
+            .card-image-area {{
+                width: 100%;
+                height: 220px;
+                display: block;
+            }}
+
+            .card-body {{
+                display: flex;
+                flex-direction: column;
+                padding: 20px 20px 22px 20px;
+                gap: 10px;
+                background-color: #FFFFFF;
+                box-sizing: border-box;
+            }}
+
+            .card-title {{
+                color: #111111;
+                font-size: 16px;
+                font-weight: 700;
+                line-height: 1.2;
+                letter-spacing: -0.3px;
+                margin: 0;
+            }}
+
+            .card-desc {{
+                color: #5E6366;
+                font-size: 13px;
+                font-weight: 400;
+                line-height: 1.4;
+                margin: 0;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                min-height: 36px;
+            }}
+
+            .card-footer-row {{
+                display: flex;
+                align-items: center;
+                width: 100%;
+                margin-top: 6px;
+            }}
+
+            .card-module-text {{
+                color: #444748;
+                font-size: 12px;
+                font-weight: 400;
+                line-height: normal;
+                text-align: left;
+            }}
+
+            /* FOOTER */
+            .footer-container {{
+                display: flex;
+                width: 100%;
+                padding: 20px 48px;
+                justify-content: space-between;
+                align-items: center;
+                background: #FFFFFF;
+                border-top: 1px solid #C4C6CF;
+                margin-top: auto;
+                flex-shrink: 0;
+            }}
+
+            .footer-text {{
+                color: #444748;
+                font-size: 12px;
+                font-weight: 400;
+                margin: 0;
+            }}
+
+            .footer-links {{ display: flex; gap: 20px; }}
+
+            .footer-link {{
+                color: #0057FF;
+                font-size: 12px;
+                font-weight: 500;
+                text-decoration: none;
+            }}
+
+            .footer-link:hover {{ text-decoration: underline; }}
+        </style>
+    </head>
+    <body>
+        <!-- NAVBAR -->
         <div class="navbar-container">
             <div class="navbar-brand" id="btnLogoHome">
                 <img src="{img_logo}" class="navbar-logo-img" alt="Indexal">
@@ -815,6 +914,7 @@ def render_galeria():
             </div>
         </div>
 
+        <!-- HERO -->
         <div class="hero-container">
             <div class="hero-text-block">
                 <div class="hero-badge" translate="no">DIAGNÓSTICO VISUAL ASISTIDO POR IA</div>
@@ -829,70 +929,102 @@ def render_galeria():
             </div>
         </div>
 
+        <!-- FILTROS -->
         <div class="filters-bar-container">
-            <button class="filter-pill-active" translate="no">Todo</button>
-            <button class="filter-pill-inactive">
-                <span class="filter-pill-label" translate="no">Semiótico</span>
+            <button class="filter-btn active" data-filter="all" translate="no">Todo</button>
+            <button class="filter-btn" data-filter="semiotico">
+                <span translate="no">Semiótico</span>
                 <span class="filter-pill-count" translate="no">{cant_semiotico}</span>
             </button>
-            <button class="filter-pill-inactive">
-                <span class="filter-pill-label" translate="no">Logotipo</span>
+            <button class="filter-btn" data-filter="logotipo">
+                <span translate="no">Logotipo</span>
                 <span class="filter-pill-count" translate="no">{cant_logotipo}</span>
             </button>
-            <button class="filter-pill-inactive">
-                <span class="filter-pill-label" translate="no">Afiches</span>
+            <button class="filter-btn" data-filter="afiches">
+                <span translate="no">Afiches</span>
                 <span class="filter-pill-count" translate="no">{cant_afiches}</span>
             </button>
-            <button class="filter-pill-inactive">
-                <span class="filter-pill-label" translate="no">Packaging</span>
+            <button class="filter-btn" data-filter="packaging">
+                <span translate="no">Packaging</span>
                 <span class="filter-pill-count" translate="no">{cant_packaging}</span>
             </button>
-            <button class="filter-pill-inactive">
-                <span class="filter-pill-label" translate="no">Tipografía</span>
+            <button class="filter-btn" data-filter="tipografia">
+                <span translate="no">Tipografía</span>
                 <span class="filter-pill-count" translate="no">{cant_tipografia}</span>
             </button>
-            <button class="filter-pill-inactive">
-                <span class="filter-pill-label" translate="no">UI/UX</span>
+            <button class="filter-btn" data-filter="ui_ux">
+                <span translate="no">UI/UX</span>
                 <span class="filter-pill-count" translate="no">{cant_uiux}</span>
             </button>
         </div>
 
+        <!-- GRILLA DE CARDS -->
+        <div class="galeria-section-container notranslate" translate="no">
+            <div class="galeria-grid" id="gridGaleria" translate="no">
+                {cards_html}
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="footer-container notranslate" translate="no">
+            <p class="footer-text">© 2026 Indexal - Análisis visual asistido por IA - Todos los derechos reservados</p>
+            <div class="footer-links">
+                <a href="javascript:void(0)" class="footer-link">Términos y condiciones</a>
+                <a href="javascript:void(0)" class="footer-link">Política de privacidad</a>
+            </div>
+        </footer>
+
         <script>
             const parentDoc = window.parent.document;
             
+            // Navegación
             document.getElementById('btnLogoHome').addEventListener('click', function() {{
                 const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                if (allButtons.length > 0) {{
-                    allButtons[0].click();
-                }}
+                if (allButtons.length > 0) allButtons[0].click();
             }});
 
             document.getElementById('btnAnalizarImagen').addEventListener('click', function() {{
                 const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                if (allButtons.length > 1) {{
-                    allButtons[1].click();
-                }}
+                if (allButtons.length > 1) allButtons[1].click();
             }});
 
             document.getElementById('btnNavAnalisis').addEventListener('click', function() {{
                 const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                if (allButtons.length > 1) {{
-                    allButtons[1].click();
-                }}
+                if (allButtons.length > 1) allButtons[1].click();
             }});
 
             document.getElementById('btnNavReportes').addEventListener('click', function() {{
                 const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                if (allButtons.length > 2) {{
-                    allButtons[2].click();
-                }}
+                if (allButtons.length > 2) allButtons[2].click();
+            }});
+
+            // Lógica interactiva de Filtros
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const cards = document.querySelectorAll('.card-item');
+
+            filterButtons.forEach(btn => {{
+                btn.addEventListener('click', function() {{
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const selectedFilter = this.getAttribute('data-filter');
+
+                    cards.forEach(card => {{
+                        const cardCategory = card.getAttribute('data-category');
+                        if (selectedFilter === 'all' || cardCategory === selectedFilter) {{
+                            card.style.display = 'flex';
+                        }} else {{
+                            card.style.display = 'none';
+                        }}
+                    }});
+                }});
             }});
         </script>
+    </body>
+    </html>
     """
 
-    components.html(header_component, height=522)
-
-    # 3. DISPARADORES OCULTOS
+    # Disparadores ocultos de Streamlit
     col_btn1, col_btn2, col_btn3 = st.columns(3)
     with col_btn1:
         if st.button("\u200b", key="btn_hidden_nav_home"):
@@ -907,265 +1039,13 @@ def render_galeria():
             st.session_state["pantalla_actual"] = "reportes"
             st.rerun()
 
-    # 4. CONSTRUCCIÓN DE CARDS DINÁMICAS (Con translate="no")
-    cards_html = ""
-    for item in INFORMES_MOCK:
-        cards_html += (
-            f'<div class="card-item notranslate" translate="no">'
-            f'<div class="card-image-area" style="background-color: {item["color_placeholder"]};"></div>'
-            f'<div class="card-body">'
-            f'<div class="card-category-row">'
-            f'<img src="{icon_flag_src}" class="card-flag-icon" alt="">'
-            f'<span class="card-category-text" translate="no">{item["categoria"]}</span>'
-            f"</div>"
-            f'<h3 class="card-title" translate="no">{item["titulo"]}</h3>'
-            f'<p class="card-desc" translate="no">{item["descripcion"]}</p>'
-            f'<div class="card-footer-row">'
-            f'<div class="card-tag" translate="no">{item["tag"]}</div>'
-            f'<span class="card-module-text" translate="no">{item["modulo"]}</span>'
-            f'<button class="card-visibility-btn">'
-            f'<img src="{icon_eye_off_src}" class="card-eye-icon" alt="">'
-            f"</button>"
-            f"</div>"
-            f"</div>"
-            f"</div>"
-        )
+    total_tarjetas = len(INFORMES_MOCK)
+    filas = max(1, math.ceil(total_tarjetas / 3))
+    
+    altura_grilla_dinamica = (filas * 395) + 24
+    altura_total_componente = 76 + 360 + 73 + altura_grilla_dinamica + 65 
 
-    # 5. CONTENEDOR PRINCIPAL DE LA GRILLA DE GALERÍA (CON IFRAME AISLADO)
-    import math
-
-    filas = math.ceil(len(INFORMES_MOCK) / 3)
-    altura_grilla = (filas * 358) + 88 + 65
-
-    galeria_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-            * {{
-                box-sizing: border-box;
-                font-family: 'Space Grotesk', sans-serif !important;
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
-            }}
-
-            html, body {{
-                margin: 0 !important;
-                padding: 0 !important;
-                background-color: #EAEAE8 !important;
-                width: 100% !important;
-                overflow: hidden !important;
-            }}
-
-            .galeria-section-container {{
-                width: 100%;
-                background-color: #EAEAE8;
-                padding: 24px 48px 40px 48px; /* Mantiene los 48px exactos de ambos laterales igual que el hero */
-                display: flex;
-                justify-content: flex-start; /* Alinea el contenido desde el inicio izquierdo */
-            }}
-
-            .galeria-grid {{
-                display: flex;
-                justify-content: space-between; /* Distribuye las 3 tarjetas de punta a punta exactamente como el hero */
-                flex-wrap: wrap;
-                gap: 20px;
-                width: 100%;
-            }}
-
-            .card-item {{
-                background-color: #FFFFFF;
-                border-radius: 12px;
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-                cursor: pointer;
-                /* El ancho se adapta de forma fluida y proporcional para cubrir perfectamente el espacio entre los 48px de cada lateral */
-                width: calc((100% - 56px) / 3); /* Resta los dos espacios de separación de 28px y divide en 3 */
-                max-width: 397px; /* Respeta el tope exacto de Figma */
-                transition: transform 0.15s ease, box-shadow 0.15s ease;
-            }}
-
-            .card-item:hover {{
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            }}
-
-            .card-image-area {{
-                width: 100%;
-                height: 220px;
-                display: block;
-            }}
-
-            .card-body {{
-                display: flex;
-                flex-direction: column;
-                align-items: flex-start;
-                align-self: stretch;
-                padding: 16px;
-                gap: 8px;
-                background-color: #FFFFFF;
-                box-sizing: border-box;
-                max-width: 397px;
-            }}
-
-            .card-category-row {{
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                height: 13px;
-                width: 100%;
-            }}
-
-            .card-flag-icon {{
-                width: 11px;
-                height: 11px;
-                display: block;
-            }}
-
-            .card-category-text {{
-                color: #0057FF;
-                font-size: 10.5px;
-                font-weight: 700;
-                letter-spacing: 0.6px;
-                text-transform: uppercase;
-                line-height: normal;
-            }}
-
-            .card-title {{
-                color: #111111;
-                font-size: 15px;
-                font-weight: 700;
-                line-height: 19px;
-                letter-spacing: -0.2px;
-                margin: 0;
-                width: 100%;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }}
-
-            .card-desc {{
-                color: #444748;
-                font-size: 12px;
-                font-weight: 400;
-                line-height: 15px;
-                margin: 0;
-                width: 100%;
-                max-width: 365px;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-                height: 30px;
-                text-overflow: ellipsis;
-            }}
-
-            .card-footer-row {{
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                width: 100%;
-                margin-top: 0px;
-            }}
-
-            .card-tag {{
-                background-color: #F3F4F1;
-                border-radius: 4px;
-                padding: 4px 8px;
-                color: #444748;
-                font-size: 11px;
-                font-weight: 400;
-                line-height: 14px;
-            }}
-
-            .card-module-text {{
-                color: #444748;
-                font-size: 11px;
-                font-weight: 400;
-                line-height: 14px;
-                text-align: center;
-                flex-grow: 1;
-            }}
-
-            .card-visibility-btn {{
-                background-color: #F3F4F1;
-                border: none;
-                border-radius: 6px;
-                width: 26px;
-                height: 26px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                padding: 0;
-            }}
-
-            .card-eye-icon {{
-                width: 14px;
-                height: 14px;
-                display: block;
-            }}
-
-            /* ESTILOS EXACTOS DEL FOOTER SEGÚN FIGMA */
-            .footer-container {{
-                display: flex;
-                width: 100%;
-                padding: 20px 48px;
-                justify-content: space-between;
-                align-items: center;
-                background: #FFFFFF;
-                border-top: 1px solid #C4C6CF;
-                box-sizing: border-box;
-            }}
-
-            .footer-text {{
-                color: #444748;
-                font-size: 12px;
-                font-weight: 400;
-                line-height: normal;
-                margin: 0;
-            }}
-
-            .footer-links {{
-                display: flex;
-                gap: 20px;
-            }}
-
-            .footer-link {{
-                color: #0057FF;
-                font-size: 12px;
-                font-weight: 500;
-                line-height: normal;
-                text-decoration: none;
-            }}
-
-            .footer-link:hover {{
-                text-decoration: underline;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="galeria-section-container notranslate" translate="no">
-            <div class="galeria-grid" translate="no">
-                {cards_html}
-            </div>
-        </div>
-        <footer class="footer-container notranslate" translate="no">
-            <p class="footer-text">© 2026 Indexal - Análisis visual asistido por IA - Todos los derechos reservados</p>
-            <div class="footer-links">
-                <a href="javascript:void(0)" class="footer-link">Términos y condiciones</a>
-                <a href="javascript:void(0)" class="footer-link">Política de privacidad</a>
-            </div>
-        </footer>
-    </body>
-    </html>
-    """
-
-    components.html(galeria_html, height=altura_grilla)
+    components.html(galeria_unificada_html, height=altura_total_componente, scrolling=False)
 
 # -----------------------------------------------------------------
 # PANTALLA 4: NUEVO ANÁLISIS
