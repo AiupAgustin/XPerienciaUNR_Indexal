@@ -8,6 +8,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import json
 import math
+import uuid
 from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_ID
 from core.reportes.generador_html import renderizar_reporte_html
 from core.reportes.generador_pdf import generar_reporte_pdf
@@ -15,7 +16,6 @@ from core.reportes.generador_pdf import generar_reporte_pdf
 # Ruta absoluta garantizada a assets/imagenes
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CARPETA_IMAGENES = os.path.join(BASE_DIR, "assets", "imagenes")
-
 
 # -----------------------------------------------------------------
 # FUNCIÓN AUXILIAR GLOBAL: CONVERTIR SVG A BASE64
@@ -110,6 +110,159 @@ st.set_page_config(
     page_icon="assets/iconos/spinner.svg", 
     layout="centered"
 )
+
+# -----------------------------------------------------------------
+# FUNCIÓN AUXILIAR: Cargar imagenes en galeria
+# -----------------------------------------------------------------
+
+PATH_DATA_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "data")
+)
+PATH_JSON_DB = os.path.join(PATH_DATA_DIR, "galeria_db.json")
+
+
+def cargar_galeria_historica():
+    """Lee galeria_db.json y convierte las imágenes almacenadas a Base64 para el HTML."""
+    if not os.path.exists(PATH_JSON_DB):
+        return []
+
+    try:
+        with open(PATH_JSON_DB, "r", encoding="utf-8") as f:
+            registros = json.load(f)
+    except Exception:
+        return []
+
+    galeria = []
+    for reg in registros:
+        img_path = reg.get("imagen_path", "")
+        img_b64_uri = None
+
+        if img_path and os.path.exists(img_path):
+            try:
+                with open(img_path, "rb") as f:
+                    b64 = base64.b64encode(f.read()).decode("utf-8")
+                    ext = "png" if img_path.lower().endswith(".png") else "jpeg"
+                    img_b64_uri = f"data:image/{ext};base64,{b64}"
+            except Exception:
+                img_b64_uri = None
+
+        galeria.append(
+            {
+                "id": reg["id"],
+                "categoria": reg["categoria"],
+                "filtro_key": reg["filtro_key"],
+                "descripcion": reg["descripcion"],
+                "modulo": reg["modulo"],
+                "imagen_url": img_b64_uri,
+                "color_placeholder": "#E5E7EB",
+            }
+        )
+
+    return galeria
+
+# -----------------------------------------------------------------
+# FUNCIÓN AUXILIAR: Registrar Análisis en Galería
+# -----------------------------------------------------------------
+
+PATH_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "data"))
+PATH_IMG_DIR = os.path.join(PATH_DATA_DIR, "imagenes_analizadas")
+PATH_JSON_DB = os.path.join(PATH_DATA_DIR, "galeria_db.json")
+
+os.makedirs(PATH_IMG_DIR, exist_ok=True)
+
+
+def registrar_analisis_galeria(
+    imagen_path,
+    tipo_analisis,
+    modulos_seleccionados,
+    descripcion="Análisis visual asistido por IA",
+):
+    try:
+        analisis_id = f"inf_{uuid.uuid4().hex[:8]}"
+
+        # 1. Mapeo de Categoría
+        mapa_nombres = {
+            "semiotico": "Semiótico",
+            "ui_ux": "UI / UX",
+            "packaging": "Packaging",
+            "tipografia": "Tipografía",
+            "logotipo": "Logotipo",
+            "afiche": "Afiches",
+            "afiches": "Afiches",
+        }
+        categoria_display = mapa_nombres.get(
+            str(tipo_analisis).lower(), "Semiótico"
+        )
+
+        # 2. Mapeo idéntico al de Reportes para las Letras (A-F)
+        MAPA_LETRAS = {
+            "composicion_visual": ("A", "Composición visual"),
+            "paleta_cromatica": ("B", "Paleta cromática"),
+            "iluminacion": ("C", "Iluminación"),
+            "semiotica_imagen": ("D", "Semiótica de la imagen"),
+            "retorica_visual": ("E", "Retórica visual"),
+            "contexto_denotacion": ("F", "Contexto y denotación"),
+        }
+
+        # Filtramos solo los módulos base seleccionados
+        modulos_base_sel = [m for m in modulos_seleccionados if m in MAPA_LETRAS]
+        total_modulos_posibles = len(MAPA_LETRAS)
+
+        # Evaluamos si hay transversales activos en la lista
+        tiene_wcag = "transversal_wcag" in modulos_seleccionados
+        tiene_hist = "transversal_historicas" in modulos_seleccionados
+
+        if len(modulos_base_sel) == total_modulos_posibles:
+            modulo_txt = "Análisis completo · 6 módulos"
+        
+        elif len(modulos_base_sel) == 1:
+            letra, nombre = MAPA_LETRAS[modulos_base_sel[0]]
+            modulo_txt = f"MÓDULO {letra}"
+        elif len(modulos_base_sel) > 1:
+            letras_activas = sorted([MAPA_LETRAS[m][0] for m in modulos_base_sel])
+            modulo_txt = f"MÓDULOS {', '.join(letras_activas)}"
+
+        elif tiene_wcag and tiene_hist:
+            modulo_txt = "Módulos transversales · WCAG e Historia"
+            
+        elif tiene_wcag:
+            modulo_txt = "Módulo Accesibilidad · WCAG 2.1"
+
+        elif tiene_hist:
+            modulo_txt = "Módulo Referencias históricas"
+        else:
+            modulo_txt = "Diagnóstico visual" # Aunque no se puede hacer analisis sin ninguno
+
+        nuevo_registro = {
+            "id": analisis_id,
+            "categoria": categoria_display,
+            "filtro_key": (
+                str(tipo_analisis).lower() if tipo_analisis else "semiotico"
+            ),
+            "descripcion": descripcion,
+            "modulo": modulo_txt,  # 📍 Guardará: "MÓDULOS A, C" o "MÓDULO A" o "Análisis completo · 6 módulos"
+            "imagen_path": imagen_path,
+            "timestamp": time.time(),
+        }
+
+        # 3. Guardado en galeria_db.json
+        registros = []
+        if os.path.exists(PATH_JSON_DB):
+            try:
+                with open(PATH_JSON_DB, "r", encoding="utf-8") as f:
+                    registros = json.load(f)
+            except Exception:
+                registros = []
+
+        registros.insert(0, nuevo_registro)
+
+        with open(PATH_JSON_DB, "w", encoding="utf-8") as f:
+            json.dump(registros, f, ensure_ascii=False, indent=2)
+
+        return True
+    except Exception as e:
+        print(f"Error al registrar en galeria_db: {e}")
+        return False
 
 # -----------------------------------------------------------------
 # 1. INICIALIZACIÓN SEGURA DE ESTADO (Evita AttributeError)
@@ -483,62 +636,67 @@ def render_galeria():
     icon_arrow_src = cargar_svg_base64("assets/iconos/vector.svg")
 
     # MOCK DATA CON NOMBRES DE CATEGORÍA CORREGIDOS
-    INFORMES_MOCK = [
-        {
-            "id": "inf_01",
-            "categoria": "Semiótico",
-            "filtro_key": "semiotico",
-            "descripcion": "Sistema de identidad completo con aplicaciones en distintos soportes",
-            "modulo": "Análisis completo · 6 módulos",
-            "color_placeholder": "#E6C2B4",
-            "imagen_url": None,
-        },
-        {
-            "id": "inf_02",
-            "categoria": "UI / UX",
-            "filtro_key": "ui_ux",
-            "descripcion": "Pantalla principal con sistema de navegación y visualización de datos",
-            "modulo": "Módulo A · Composición visual",
-            "color_placeholder": "#6B7280",
-            "imagen_url": None,
-        },
-        {
-            "id": "inf_03",
-            "categoria": "Packaging",
-            "filtro_key": "packaging",
-            "descripcion": "Packaging minimalista con código cromático funcional para línea premium",
-            "modulo": "Módulo B · Paleta cromática",
-            "color_placeholder": "#36635C",
-            "imagen_url": None,
-        },
-        {
-            "id": "inf_04",
-            "categoria": "Tipografía",
-            "filtro_key": "tipografia",
-            "descripcion": "Jerarquía tipográfica para publicación impresa y digital",
-            "modulo": "Módulos A, B, C · Visual",
-            "color_placeholder": "#C8C4B7",
-            "imagen_url": None,
-        },
-        {
-            "id": "inf_05",
-            "categoria": "Logotipo",
-            "filtro_key": "logotipo",
-            "descripcion": "Construcción de isotipo y aplicaciones sobre fondo oscuro",
-            "modulo": "Análisis completo · 6 módulos",
-            "color_placeholder": "#282B30",
-            "imagen_url": None,
-        },
-        {
-            "id": "inf_06",
-            "categoria": "Afiches",
-            "filtro_key": "afiches",
-            "descripcion": "Serie de afiches con sistema modular de retícula",
-            "modulo": "Módulo E · Retórica visual",
-            "color_placeholder": "#D8A75F",
-            "imagen_url": None,
-        },
-    ]
+    items_historicos = cargar_galeria_historica()
+
+    # Si hay un informe lo carga, sino muestra los mocks de ejemplo
+    INFORMES_MOCK = (
+        items_historicos if len(items_historicos) > 0 else [
+            {
+                "id": "inf_01",
+                "categoria": "Semiótico",
+                "filtro_key": "semiotico",
+                "descripcion": "Sistema de identidad completo con aplicaciones en distintos soportes",
+                "modulo": "Análisis completo · 6 módulos",
+                "color_placeholder": "#E6C2B4",
+                "imagen_url": None,
+            },
+            {
+                "id": "inf_02",
+                "categoria": "UI / UX",
+                "filtro_key": "ui_ux",
+                "descripcion": "Pantalla principal con sistema de navegación y visualización de datos",
+                "modulo": "Módulo A · Composición visual",
+                "color_placeholder": "#6B7280",
+                "imagen_url": None,
+            },
+            {
+                "id": "inf_03",
+                "categoria": "Packaging",
+                "filtro_key": "packaging",
+                "descripcion": "Packaging minimalista con código cromático funcional para línea premium",
+                "modulo": "Módulo B · Paleta cromática",
+                "color_placeholder": "#36635C",
+                "imagen_url": None,
+            },
+            {
+                "id": "inf_04",
+                "categoria": "Tipografía",
+                "filtro_key": "tipografia",
+                "descripcion": "Jerarquía tipográfica para publicación impresa y digital",
+                "modulo": "Módulos A, B, C · Visual",
+                "color_placeholder": "#C8C4B7",
+                "imagen_url": None,
+            },
+            {
+                "id": "inf_05",
+                "categoria": "Logotipo",
+                "filtro_key": "logotipo",
+                "descripcion": "Construcción de isotipo y aplicaciones sobre fondo oscuro",
+                "modulo": "Análisis completo · 6 módulos",
+                "color_placeholder": "#282B30",
+                "imagen_url": None,
+            },
+            {
+                "id": "inf_06",
+                "categoria": "Afiches",
+                "filtro_key": "afiches",
+                "descripcion": "Serie de afiches con sistema modular de retícula",
+                "modulo": "Módulo E · Retórica visual",
+                "color_placeholder": "#D8A75F",
+                "imagen_url": None,
+            },
+        ]
+    )
 
     # Conteo dinámico de categorías
     cant_semiotico = sum(1 for x in INFORMES_MOCK if x["filtro_key"] == "semiotico")
@@ -551,7 +709,6 @@ def render_galeria():
     # Construcción dinámica de tarjetas
     cards_html = ""
     for item in INFORMES_MOCK:
-        # Si tiene imagen real la muestra; si no, usa el placeholder cromático
         if item.get("imagen_url"):
             area_visual = f'<div class="card-image-area" style="background-image: url(\'{item["imagen_url"]}\'); background-size: cover; background-position: center;"></div>'
         else:
@@ -1042,8 +1199,8 @@ def render_galeria():
     total_tarjetas = len(INFORMES_MOCK)
     filas = max(1, math.ceil(total_tarjetas / 3))
     
-    altura_grilla_dinamica = (filas * 395) + 24
-    altura_total_componente = 76 + 360 + 73 + altura_grilla_dinamica + 65 
+    altura_grilla_dinamica = (filas * 400) + 30
+    altura_total_componente = 80 + 360 + 80 + altura_grilla_dinamica + 65 
 
     components.html(galeria_unificada_html, height=altura_total_componente, scrolling=False)
 
@@ -2358,7 +2515,7 @@ def render_analizar():
     if archivo_subido is not None:
         # Guardado físico único e instantáneo
         if not st.session_state["imagen_cargada"] or st.session_state.get("nombre_imagen") != archivo_subido.name:
-            carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets", "imagenes"))
+            carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "imagenes_analizadas"))
             if not os.path.exists(carpeta_destino):
                 os.makedirs(carpeta_destino, exist_ok=True)
 
@@ -2493,7 +2650,7 @@ def render_analizar():
                 st.session_state["paso_actual"] = 4
 
                 nombre_archivo = st.session_state.get("archivo_guardado_path", "")
-                carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets", "imagenes"))
+                carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "imagenes_analizadas"))
                 ruta_completa_imagen = os.path.join(carpeta_destino, nombre_archivo)
 
                 cat_str = st.session_state.get("tipo_analisis", "semiotico")
@@ -2514,6 +2671,14 @@ def render_analizar():
                 )
 
                 st.session_state["ultimo_reporte_json"] = master_json
+
+                resumen_desc = master_json.get("metadata", {}).get("resumen_ejecutivo") or "Sistema analizado"
+                registrar_analisis_galeria(
+                    imagen_path=ruta_completa_imagen,
+                    tipo_analisis=cat_str,
+                    modulos_seleccionados=modulos_a_ejecutar,
+                    descripcion=resumen_desc
+                )
 
                 nombre_img_original = st.session_state.get("nombre_imagen", "Analisis")
                 nombre_limpio = os.path.splitext(nombre_img_original)[0]
