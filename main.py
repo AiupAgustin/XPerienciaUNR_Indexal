@@ -12,6 +12,8 @@ import uuid
 from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_ID
 from core.reportes.generador_html import renderizar_reporte_html
 from core.reportes.generador_pdf import generar_reporte_pdf
+from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_ID, MAPAS_POR_CATEGORIA
+from core.categorias.cat0_analisis_semiotico import MAPA_CHECKBOXES_CAT0
 
 # Ruta absoluta garantizada a assets/imagenes
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,37 +25,52 @@ CARPETA_IMAGENES = os.path.join(BASE_DIR, "assets", "imagenes")
 
 def obtener_js_posicionamiento_modal():
     """Retorna el script JS universal para centrar y posicionar cualquier modal
-
     en la vista del usuario dentro de un iframe de Streamlit.
     """
     return """
     function posicionarModal(modalElem) {
         if (!modalElem) return;
-        try {
-            let iframeOffsetTop = 0;
-            if (window.frameElement) {
-                const rect = window.frameElement.getBoundingClientRect();
-                iframeOffsetTop = rect.top;
-            }
-            const ventanaVisibleAlto = window.parent.innerHeight || window.innerHeight || 800;
-            const centroPantalla = ventanaVisibleAlto / 2;
-            let posFinal = -iframeOffsetTop + centroPantalla - 200;
 
-            if (isNaN(posFinal) || posFinal < 40) {
-                const scrollTopParent = window.parent.scrollY || document.documentElement.scrollTop || 0;
-                posFinal = Math.max(40, scrollTopParent + 120);
-            }
+        function calcularYUbicar() {
+            try {
+                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card');
+                if (!card) return;
 
-            const card = modalElem.querySelector('.popup-card, .welcome-card');
-            if (card) {
+                const parentWin = window.parent;
+                const parentDoc = parentWin.document;
+
+                // Detectar el scroll actual en la ventana principal o contenedores de Streamlit
+                const stContainer = parentDoc.querySelector('section.main') || parentDoc.querySelector('.stMain') || parentDoc.querySelector('[data-testid="stAppViewContainer"]');
+                const scrollTop = parentWin.scrollY || (stContainer ? stContainer.scrollTop : 0) || parentDoc.documentElement.scrollTop || parentDoc.body.scrollTop || 0;
+                const viewportHeight = parentWin.innerHeight || parentDoc.documentElement.clientHeight || window.innerHeight || 800;
+
+                // Calcular posición del iframe respecto al top global
+                let iframeTop = 0;
+                if (window.frameElement) {
+                    const rect = window.frameElement.getBoundingClientRect();
+                    iframeTop = rect.top + scrollTop;
+                }
+
+                // Ubicar exactamente en el centro visual del usuario
+                const centroDeseado = scrollTop + (viewportHeight / 2);
+                let posFinal = centroDeseado - iframeTop - 200;
+
+                if (isNaN(posFinal) || posFinal < 40) {
+                    posFinal = Math.max(40, scrollTop - iframeTop + 100);
+                }
+
                 card.style.marginTop = Math.max(40, Math.round(posFinal)) + 'px';
-            }
-        } catch (e) {
-            const card = modalElem.querySelector('.popup-card, .welcome-card');
-            if (card) {
-                card.style.marginTop = '120px';
+            } catch (e) {
+                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card');
+                if (card) {
+                    card.style.marginTop = '180px';
+                }
             }
         }
+
+        calcularYUbicar();
+        setTimeout(calcularYUbicar, 40);
+        setTimeout(calcularYUbicar, 120);
     }
     """
 
@@ -1258,6 +1275,14 @@ def render_analizar():
         st.session_state["tipo_analisis"] = None
     if "imagen_cargada" not in st.session_state:
         st.session_state["imagen_cargada"] = False
+    if "analisis_en_progreso" not in st.session_state:
+        st.session_state["analisis_en_progreso"] = False
+    if "paso_analisis_idx" not in st.session_state:
+        st.session_state["paso_analisis_idx"] = 0
+    if "modal_scroll_y" not in st.session_state:
+        st.session_state["modal_scroll_y"] = 0
+    if "bloques_temporales" not in st.session_state:
+        st.session_state["bloques_temporales"] = []
 
     # Estado de módulos transversales
     if "transversal_wcag" not in st.session_state:
@@ -1534,6 +1559,7 @@ def render_analizar():
     icon_access = cargar_svg_base64("assets/iconos/icon-access.svg")
     icon_star = cargar_svg_base64("assets/iconos/stars.svg")
     logo_bienvenida = cargar_svg_base64("assets/iconos/logo_popup_bienvenida.svg")
+    icon_spinner = cargar_svg_base64("assets/iconos/spinner.svg")
     modal_bienvenida_activo = "active" if not st.session_state["terminos_aceptados"] else ""
     js_posicionador = obtener_js_posicionamiento_modal()
 
@@ -1551,6 +1577,61 @@ def render_analizar():
     hist_checked = (
         "checked" if st.session_state["transversal_historicas"] else ""
     )
+
+    # Lista de IDs canónica a ejecutar
+    modulos_a_ejecutar = [m["id"] for m in lista_modulos_activa if m["id"] in st.session_state["modulos_seleccionados"]]
+    if st.session_state["transversal_wcag"]:
+        modulos_a_ejecutar.append("transversal_wcag")
+    if st.session_state["transversal_historicas"]:
+        modulos_a_ejecutar.append("transversal_historicas")
+
+    # Mapeo de letra original según su índice en la categoría
+    id_a_letra = {m["id"]: letras[idx] if idx < len(letras) else str(idx + 1) for idx, m in enumerate(lista_modulos_activa)}
+
+    # Construcción dinámica manteniendo la letra de origen
+    lista_pasos_carga = []
+    for mod_id in modulos_a_ejecutar:
+        nombre_modulo = mod_id.replace("_", " ").title()
+        for m in lista_modulos_activa:
+            if m["id"] == mod_id:
+                letra_original = id_a_letra.get(mod_id, "")
+                nombre_modulo = f"Módulo {letra_original} · {m['titulo']}"
+                break
+        if mod_id == "transversal_wcag":
+            nombre_modulo = "Detector de accesibilidad WCAG 2.1"
+        elif mod_id == "transversal_historicas":
+            nombre_modulo = "Referencias históricas"
+
+        lista_pasos_carga.append({
+            "id": mod_id,
+            "texto": nombre_modulo
+        })
+
+    lista_pasos_carga.append({
+        "id": "compilacion_reporte",
+        "texto": "Compilación de reporte"
+    })
+
+    paso_actual_carga = st.session_state["paso_analisis_idx"]
+    modal_carga_activo = "active" if st.session_state["analisis_en_progreso"] else ""
+
+    html_pasos_carga = ""
+    for i, paso in enumerate(lista_pasos_carga):
+        if i < paso_actual_carga:
+            clase_estado = "completed"
+        elif i == paso_actual_carga and st.session_state["analisis_en_progreso"]:
+            clase_estado = "in-progress"
+        else:
+            clase_estado = ""
+
+        html_pasos_carga += f"""
+        <div class="loading-step-row {clase_estado}" id="step_load_{paso['id']}">
+            <div class="loading-step-icon">
+                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <span>{paso['texto']}</span>
+        </div>
+        """
 
     analizar_html = f"""
     <!DOCTYPE html>
@@ -2215,6 +2296,132 @@ def render_analizar():
             .footer-link {{ color: #0057FF; font-size: 12px; font-weight: 500; text-decoration: none; }}
             .footer-link:hover {{ text-decoration: underline; }}
 
+            /* --- MODAL DE CARGA PROGRESIVA --- */
+            .loading-card {{
+                position: relative;
+                width: 440px;
+                max-width: 90%;
+                background: #FFFFFF;
+                border-radius: 20px;
+                padding: 36px 32px 32px 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                box-sizing: border-box;
+                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+                transform: scale(0.95);
+                transition: transform 0.25s ease;
+            }}
+
+            .modal-overlay.active .loading-card {{
+                transform: scale(1);
+            }}
+
+            .loading-logo-badge {{
+                width: 58px;
+                height: 58px;
+                min-width: 58px;
+                min-height: 58px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 20px;
+            }}
+
+            .loading-logo-img {{
+                width: 48px;
+                height: 48px;
+                display: block;
+                animation: spinLogo 1.5s linear infinite;
+            }}
+
+            @keyframes spinLogo {{
+                0% {{ transform: rotate(0deg); }}
+                100% {{ transform: rotate(360deg); }}
+            }}
+
+            .loading-title {{
+                color: #111111;
+                font-size: 22px;
+                font-weight: 700;
+                letter-spacing: -0.4px;
+                margin: 0 0 10px 0;
+            }}
+
+            .loading-desc {{
+                font-size: 13.5px;
+                line-height: 1.45;
+                color: #5E6366;
+                margin: 0 0 24px 0;
+                font-weight: 400;
+            }}
+
+            .loading-steps-list {{
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                width: 100%;
+                text-align: left;
+                box-sizing: border-box;
+            }}
+
+            .loading-step-row {{
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                font-size: 13.5px;
+                font-weight: 500;
+                color: #8C9093;
+                transition: color 0.2s ease;
+            }}
+
+            .loading-step-row.in-progress {{
+                color: #111111;
+                font-weight: 600;
+            }}
+
+            .loading-step-row.completed {{
+                color: #111111;
+                font-weight: 500;
+            }}
+
+            .loading-step-icon {{
+                width: 22px;
+                height: 22px;
+                min-width: 22px;
+                min-height: 22px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-sizing: border-box;
+                border: 2px solid #E5E7EB;
+                background-color: #F8F9FA;
+                transition: all 0.2s ease;
+            }}
+
+            .loading-step-row.in-progress .loading-step-icon {{
+                border-color: #0057FF;
+                background-color: #FFFFFF;
+            }}
+
+            .loading-step-row.completed .loading-step-icon {{
+                border-color: #2FA36B;
+                background-color: #2FA36B;
+            }}
+
+            .loading-step-icon svg {{
+                width: 13px;
+                height: 13px;
+                fill: #FFFFFF;
+                display: none;
+            }}
+
+            .loading-step-row.completed .loading-step-icon svg {{
+                display: block;
+            }}
+
             /* --- MODAL DE BIENVENIDA / TÉRMINOS --- */
             .modal-overlay {{
                 position: absolute;
@@ -2569,12 +2776,33 @@ def render_analizar():
             </div>
         </div>
 
+        <!-- MODAL DE CARGA PROGRESIVA -->
+                <div class="modal-overlay {modal_carga_activo}" id="modalCargaProgreso">
+                    <div class="loading-card">
+                        <div class="loading-logo-badge">
+                            <img src="{icon_spinner}" class="loading-logo-img" alt="Indexal">
+                        </div>
+                        <h3 class="loading-title">Procesando tu imagen...</h3>
+                        <p class="loading-desc">
+                            Estamos aplicando el análisis seleccionado ({total_modulos_activos} módulos).<br>Esto puede tardar unos segundos.
+                        </p>
+                        <div class="loading-steps-list">
+                            {html_pasos_carga}
+                        </div>
+                    </div>
+                </div>
+
         <script>
             {js_posicionador}
 
             const modalBienv = document.getElementById('modalBienvenida');
             if (modalBienv && modalBienv.classList.contains('active')) {{
                 posicionarModal(modalBienv);
+            }}
+
+            const modalCarga = document.getElementById('modalCargaProgreso');
+            if (modalCarga && modalCarga.classList.contains('active')) {{
+                posicionarModal(modalCarga);
             }}
 
             const parentDoc = window.parent.document;
@@ -2750,13 +2978,53 @@ def render_analizar():
                 }}
             }}
 
-            // Generar Análisis
+            // Función global escuchadora para marcar tildes reales desde Python
+            window.marcarPasoCompletado = function(modId) {{
+                const modalCarga = document.getElementById('modalCargaProgreso');
+                if (!modalCarga) return;
+
+                const el = document.getElementById('step_load_' + modId);
+                if (el) {{
+                    el.classList.remove('in-progress');
+                    el.classList.add('completed');
+                }}
+
+                // Buscar el siguiente módulo pendiente y ponerlo en progreso (azul)
+                const filas = Array.from(modalCarga.querySelectorAll('.loading-step-row'));
+                let encontroSiguiente = false;
+                filas.forEach(function(fila) {{
+                    if (!fila.classList.contains('completed')) {{
+                        if (!encontroSiguiente) {{
+                            fila.classList.add('in-progress');
+                            encontroSiguiente = true;
+                        }} else {{
+                            fila.classList.remove('in-progress');
+                        }}
+                    }}
+                }});
+            }};
+
+            // Generar Análisis: abre el modal y ejecuta
             if (puedeGenerar) {{
                 const btnGen = document.getElementById('btnGenerarAnalisis');
                 if (btnGen) {{
                     btnGen.addEventListener('click', function() {{
-                        const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                        if (allButtons.length > {13 + len(lista_modulos_activa)}) allButtons[{13 + len(lista_modulos_activa)}].click();
+                        const modalCarga = document.getElementById('modalCargaProgreso');
+                        if (modalCarga) {{
+                            window.parent.sessionStorage.removeItem('indexal_modal_carga_top');
+                            posicionarModal(modalCarga);
+                            modalCarga.classList.add('active');
+                            const filas = modalCarga.querySelectorAll('.loading-step-row');
+                            if (filas.length > 0) filas[0].classList.add('in-progress');
+                        }}
+                        
+                        setTimeout(function() {{
+                            const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                            const targetIdx = {13 + len(lista_modulos_activa)};
+                            if (allButtons.length > targetIdx) {{
+                                allButtons[targetIdx].click();
+                            }}
+                        }}, 60);
                     }});
                 }}
             }}
@@ -2908,64 +3176,115 @@ def render_analizar():
                 )
                 st.rerun()
 
-    # 7. Botón disparador de Generar Análisis -> Conexión con el Orquestador
+    # 7. Botón disparador de Generar Análisis
     with columnas_totales[idx_transversal + 2]:
         if st.button("\u200b", key="btn_hidden_generar_analisis"):
             if puede_generar:
-                st.session_state["paso_actual"] = 4
-
-                nombre_archivo = st.session_state.get("archivo_guardado_path", "")
-                carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "imagenes_analizadas"))
-                ruta_completa_imagen = os.path.join(carpeta_destino, nombre_archivo)
-
-                cat_str = st.session_state.get("tipo_analisis", "semiotico")
-                cat_id = MAPA_CATEGORIA_A_ID.get(cat_str, 0)
-
-                seleccion_actual = st.session_state.get("modulos_seleccionados", [])
-                modulos_a_ejecutar = [m_id for m_id in todos_los_ids if m_id in seleccion_actual]
-
-                if st.session_state.get("transversal_wcag"):
-                    modulos_a_ejecutar.append("transversal_wcag")
-                if st.session_state.get("transversal_historicas"):
-                    modulos_a_ejecutar.append("transversal_historicas")
-
-                mapa_funciones = globals().get("MAPA_GLOBAL_FUNCIONES", {})
-                master_json = compilar_datos_reporte(
-                    imagen_path=ruta_completa_imagen,
-                    mapa_global=mapa_funciones,
-                    lista_cb_seleccionados=modulos_a_ejecutar,
-                    categoria_id=cat_id,
-                )
-
-                st.session_state["ultimo_reporte_json"] = master_json
-
-                resumen_desc = master_json.get("metadata", {}).get("resumen_ejecutivo") or "Sistema analizado"
-                registrar_analisis_galeria(
-                    imagen_path=ruta_completa_imagen,
-                    tipo_analisis=cat_str,
-                    modulos_seleccionados=modulos_a_ejecutar,
-                    descripcion=resumen_desc
-                )
-
-                nombre_img_original = st.session_state.get("nombre_imagen", "Analisis")
-                nombre_limpio = os.path.splitext(nombre_img_original)[0]
-                titulo_rep = master_json.get("metadata", {}).get("titulo_reporte", "Diagnóstico")
-
-                nuevo_rep = {
-                    "id": f"rep_{len(st.session_state.get('reportes_sesion', [])) + 1}",
-                    "archivo": f"Diagnóstico_{nombre_limpio}_indexal.pdf",
-                    "tipo": titulo_rep,
-                    "modulos_analizados": total_modulos_activos,
-                    "timestamp": time.time(),
-                    "json_data": master_json,
-                }
-
-                if "reportes_sesion" not in st.session_state:
-                    st.session_state["reportes_sesion"] = []
-                st.session_state["reportes_sesion"].append(nuevo_rep)
-
-                st.session_state["pantalla_actual"] = "reportes"
+                st.session_state["analisis_en_progreso"] = True
+                st.session_state["paso_analisis_idx"] = 0
+                st.session_state["bloques_temporales"] = []
                 st.rerun()
+
+    # Ejecución paso a paso en sincronía real con la interfaz
+    if st.session_state.get("analisis_en_progreso", False):
+        nombre_archivo = st.session_state.get("archivo_guardado_path", "")
+        carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "imagenes_analizadas"))
+        ruta_completa_imagen = os.path.join(carpeta_destino, nombre_archivo)
+
+        cat_str = st.session_state.get("tipo_analisis", "semiotico")
+        cat_id = MAPA_CATEGORIA_A_ID.get(cat_str, 0)
+
+        mapa_global = MAPAS_POR_CATEGORIA.get(cat_id, MAPA_CHECKBOXES_CAT0)
+
+        idx_actual = st.session_state["paso_analisis_idx"]
+
+        # Si aún faltan módulos por ejecutar
+        if idx_actual < len(modulos_a_ejecutar):
+            cb_id = modulos_a_ejecutar[idx_actual]
+            
+            func_ejecutora = None
+            if cb_id in mapa_global:
+                func_ejecutora = mapa_global[cb_id]
+            else:
+                # Búsqueda tolerante por coincidencia de nombre o sufijo
+                for k, v in mapa_global.items():
+                    norm_k = k.lower().replace("-", "_")
+                    norm_cb = cb_id.lower().replace("-", "_")
+                    if norm_k == norm_cb or norm_k.endswith(norm_cb) or norm_cb.endswith(norm_k):
+                        func_ejecutora = v
+                        break
+            
+            if func_ejecutora:
+                try:
+                    res = func_ejecutora(ruta_completa_imagen)
+                    st.session_state["bloques_temporales"].append(res)
+                except Exception as e:
+                    st.session_state["bloques_temporales"].append({
+                        "status": "error",
+                        "checkbox": cb_id,
+                        "error_msg": str(e)
+                    })
+
+            # Avanza exactamente 1 módulo y redibuja la pantalla con el tilde verde real
+            st.session_state["paso_analisis_idx"] += 1
+            st.rerun()
+
+        # Al completar todos los módulos -> Consolidación y paso a Reportes
+        else:
+            titulos_por_categoria = {
+                0: "Análisis Semiótico",
+                1: "Análisis Branding y Identidad de Marca",
+                2: "Análisis Publicitario",
+                3: "Análisis Editorial",
+                4: "Análisis de Ilustración / Arte",
+                5: "Análisis UI/UX"
+            }
+
+            master_json = {
+                "metadata": {
+                    "imagen_path": ruta_completa_imagen,
+                    "categoria_id": cat_id,
+                    "titulo_reporte": titulos_por_categoria.get(cat_id, "Auditoría de Diseño Visual"),
+                    "total_bloques": len(st.session_state["bloques_temporales"])
+                },
+                "bloques": st.session_state["bloques_temporales"]
+            }
+
+            st.session_state["ultimo_reporte_json"] = master_json
+
+            resumen_desc = master_json.get("metadata", {}).get("resumen_ejecutivo") or "Sistema analizado"
+            registrar_analisis_galeria(
+                imagen_path=ruta_completa_imagen,
+                tipo_analisis=cat_str,
+                modulos_seleccionados=modulos_a_ejecutar,
+                descripcion=resumen_desc
+            )
+
+            nombre_img_original = st.session_state.get("nombre_imagen", "Analisis")
+            nombre_limpio = os.path.splitext(nombre_img_original)[0]
+            titulo_rep = master_json.get("metadata", {}).get("titulo_reporte", "Diagnóstico")
+
+            nuevo_rep = {
+                "id": f"rep_{len(st.session_state.get('reportes_sesion', [])) + 1}",
+                "archivo": f"Diagnóstico_{nombre_limpio}_indexal.pdf",
+                "tipo": titulo_rep,
+                "modulos_analizados": total_modulos_activos,
+                "timestamp": time.time(),
+                "json_data": master_json,
+            }
+
+            if "reportes_sesion" not in st.session_state:
+                st.session_state["reportes_sesion"] = []
+            st.session_state["reportes_sesion"].append(nuevo_rep)
+
+            # Limpieza de estados y navegación directa a Reportes
+            st.session_state["analisis_en_progreso"] = False
+            st.session_state["paso_analisis_idx"] = 0
+            st.session_state["bloques_temporales"] = []
+            st.session_state["modal_scroll_y"] = 0
+            st.session_state["paso_actual"] = 4
+            st.session_state["pantalla_actual"] = "reportes"
+            st.rerun()
 
 
     # 8. Botón invisible para Aceptar Términos de Bienvenida
