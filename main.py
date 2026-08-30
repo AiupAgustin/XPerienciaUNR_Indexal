@@ -2529,33 +2529,35 @@ def render_analizar():
                 border-radius: 12px;
                 border: 1.5px solid #0057FF;
                 background-color: #EDF3FF;
-                cursor: pointer;
+                cursor: default;
                 box-sizing: border-box;
                 text-align: left;
                 user-select: none;
-                transition: background-color 0.15s ease, transform 0.1s ease;
-            }}
-
-            .welcome-accept-box:hover {{
-                background-color: #E2ECFF;
-            }}
-
-            .welcome-accept-box:active {{
-                transform: scale(0.99);
             }}
 
             .welcome-checkbox {{
-                width: 22px;
-                height: 22px;
-                min-width: 22px;
-                min-height: 22px;
-                border-radius: 6px;
-                border: 2px solid #0057FF;
-                background-color: #FFFFFF;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-shrink: 0;
+                            width: 22px;
+                            height: 22px;
+                            min-width: 22px;
+                            min-height: 22px;
+                            border-radius: 6px;
+                            border: 2px solid #0057FF;
+                            background-color: #FFFFFF;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                            ursor: pointer;
+                            transition: transform 0.1s ease, background-color 0.15s ease;
+                        }}
+
+            .welcome-checkbox:hover {{
+                background-color: #F0F5FF;
+                transform: scale(1.05);
+            }}
+
+            .welcome-checkbox:active {{
+                transform: scale(0.95);
             }}
 
             .welcome-accept-text {{
@@ -2828,12 +2830,10 @@ def render_analizar():
             }});
 
             // Gestión del click de aceptación de términos
-            const btnAceptarTerminos = document.getElementById('btnAceptarTerminosBox');
-            if (btnAceptarTerminos) {{
-                btnAceptarTerminos.addEventListener('click', function(e) {{
-                    if (e.target.id === 'lnkTerminosServicio' || e.target.id === 'lnkPoliticaPrivacidad') {{
-                        return;
-                    }}
+            const chkTerminos = document.getElementById('chkBoxTerminos');
+            if (chkTerminos) {{
+                chkTerminos.addEventListener('click', function(e) {{
+                    e.stopPropagation();
                     const allButtons = parentDoc.querySelectorAll('div.stButton button');
                     const idxTerminos = {14 + len(lista_modulos_activa)};
                     if (allButtons.length > idxTerminos) {{
