@@ -27,7 +27,8 @@ def compilar_datos_reporte(
     imagen_path: str, 
     mapa_global: dict = None, 
     lista_cb_seleccionados: list = None, 
-    categoria_id: int = 0
+    categoria_id: int = 0,
+    callback_progreso = None
 ) -> dict:
     """Ejecuta los checkboxes seleccionados y consolida el Master JSON."""
     
@@ -76,6 +77,11 @@ def compilar_datos_reporte(
                     "checkbox": cb_id,
                     "error_msg": str(e)
                 })
+            if callback_progreso:
+                callback_progreso(cb_id)
+
+    if callback_progreso:
+        callback_progreso("compilacion_reporte")
 
     return {
         "metadata": {
