@@ -33,7 +33,7 @@ def obtener_js_posicionamiento_modal():
 
         function calcularYUbicar() {
             try {
-                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card, .success-upload-card');
+                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card, .success-upload-card, .error-analysis-card');
                 if (!card) return;
 
                 const parentWin = window.parent;
@@ -61,7 +61,7 @@ def obtener_js_posicionamiento_modal():
 
                 card.style.marginTop = Math.max(40, Math.round(posFinal)) + 'px';
             } catch (e) {
-                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card, .success-upload-card');
+                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card, .success-upload-card, .error-analysis-card');
                 if (card) {
                     card.style.marginTop = '180px';
                 }
@@ -1277,6 +1277,8 @@ def render_analizar():
         st.session_state["imagen_cargada"] = False
     if "modal_carga_exito_activo" not in st.session_state:
         st.session_state["modal_carga_exito_activo"] = False
+    if "modal_error_analisis_activo" not in st.session_state:
+        st.session_state["modal_error_analisis_activo"] = False
     if "analisis_en_progreso" not in st.session_state:
         st.session_state["analisis_en_progreso"] = False
     if "paso_analisis_idx" not in st.session_state:
@@ -1564,6 +1566,7 @@ def render_analizar():
     icon_spinner = cargar_svg_base64("assets/iconos/spinner.svg")
     modal_bienvenida_activo = "active" if not st.session_state["terminos_aceptados"] else ""
     modal_exito_activo = "active" if st.session_state["modal_carga_exito_activo"] else ""
+    modal_error_activo = "active" if st.session_state["modal_error_analisis_activo"] else ""
     js_posicionador = obtener_js_posicionamiento_modal()
 
     sidebar_html = obtener_sidebar_html(
@@ -2583,7 +2586,7 @@ def render_analizar():
                 text-decoration: underline;
             }}
 
-        /* --- POPUP DE ÉXITO DE CARGA --- */
+            /* --- POPUP DE ÉXITO DE CARGA --- */
             .success-upload-card {{
                 position: relative;
                 width: 460px;
@@ -2658,6 +2661,62 @@ def render_analizar():
             }}
 
             .success-desc {{
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 14px;
+                line-height: 1.5;
+                color: #444748;
+                margin: 0;
+                font-weight: 400;
+            }}
+
+            /* --- POPUP DE ERROR DE ANÁLISIS --- */
+            .error-analysis-card {{
+                position: relative;
+                width: 460px;
+                max-width: 90%;
+                background: #FDF0F1;
+                border: 1.5px solid #DF3F4E;
+                border-radius: 20px;
+                padding: 36px 32px 32px 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                box-sizing: border-box;
+                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+                transform: scale(0.95);
+                transition: transform 0.25s ease;
+            }}
+
+            .modal-overlay.active .error-analysis-card {{
+                transform: scale(1);
+            }}
+
+            .error-badge-icon {{
+                width: 52px;
+                height: 52px;
+                border-radius: 50%;
+                background-color: #C24558;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 20px;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 26px;
+                font-weight: 700;
+                color: #FFFFFF;
+                user-select: none;
+            }}
+
+            .error-title {{
+                color: #111111;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 20px;
+                font-weight: 700;
+                margin: 0 0 12px 0;
+            }}
+
+            .error-desc {{
                 font-family: 'Space Grotesk', sans-serif !important;
                 font-size: 14px;
                 line-height: 1.5;
@@ -2896,6 +2955,20 @@ def render_analizar():
             </div>
         </div>
 
+        <!-- POPUP DE ERROR DE ANÁLISIS -->
+        <div class="modal-overlay {modal_error_activo}" id="modalErrorAnalisis">
+            <div class="error-analysis-card">
+                <button class="success-close-btn" id="btnCerrarPopupError">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="error-badge-icon">!</div>
+                <h3 class="error-title">Falla de procesamiento</h3>
+                <p class="error-desc">
+                    No pudimos completar el análisis.
+                </p>
+            </div>
+        </div>
+
         <script>
             {js_posicionador}
 
@@ -2966,9 +3039,6 @@ def render_analizar():
                 }});
             }}
 
-            // ----------------------------------------------------
-            // CONEXIÓN DIRECTA Y ROBUSTA DE SUBIDA
-            // ----------------------------------------------------
             const uploadBox = document.getElementById('btnSubirBox');
             
             // 1. Click clásico para abrir el explorador de archivos
@@ -3147,6 +3217,24 @@ def render_analizar():
                     }}
                 }});
             }}
+
+            // Cerrar popup de error en analisis
+            const modalError = document.getElementById('modalErrorAnalisis');
+            if (modalError && modalError.classList.contains('active')) {{
+                posicionarModal(modalError);
+            }}
+
+            const btnCerrarError = document.getElementById('btnCerrarPopupError');
+            if (btnCerrarError) {{
+                btnCerrarError.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxCerrarError = {16 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxCerrarError) {{
+                        allButtons[idxCerrarError].click();
+                    }}
+                }});
+            }}
+
         </script>
     </body>
     </html>
@@ -3186,7 +3274,7 @@ def render_analizar():
 
     # Botones ocultos de navegación y estado
     botones_modulos_count = len(lista_modulos_activa)
-    columnas_totales = st.columns(16 + botones_modulos_count)
+    columnas_totales = st.columns(17 + botones_modulos_count)
 
     # 1. Navegación del Menú Lateral (0, 1, 2)
     with columnas_totales[0]:
@@ -3338,16 +3426,23 @@ def render_analizar():
                 try:
                     res = func_ejecutora(ruta_completa_imagen)
                     st.session_state["bloques_temporales"].append(res)
-                except Exception as e:
-                    st.session_state["bloques_temporales"].append({
-                        "status": "error",
-                        "checkbox": cb_id,
-                        "error_msg": str(e)
-                    })
-
-            # Avanza exactamente 1 módulo y redibuja la pantalla con el tilde verde real
-            st.session_state["paso_analisis_idx"] += 1
-            st.rerun()
+                    # Si salió bien, avanza al siguiente paso y actualiza la pantalla
+                    st.session_state["paso_analisis_idx"] += 1
+                    st.rerun()
+                except Exception:
+                    # Si falla el análisis, frena la carga y abre el popup de error
+                    st.session_state["analisis_en_progreso"] = False
+                    st.session_state["paso_analisis_idx"] = 0
+                    st.session_state["bloques_temporales"] = []
+                    st.session_state["modal_error_analisis_activo"] = True
+                    st.rerun()
+            else:
+                # Si no existe la función para ese módulo, también frena y muestra error
+                st.session_state["analisis_en_progreso"] = False
+                st.session_state["paso_analisis_idx"] = 0
+                st.session_state["bloques_temporales"] = []
+                st.session_state["modal_error_analisis_activo"] = True
+                st.rerun()
 
         # Al completar todos los módulos -> Consolidación y paso a Reportes
         else:
@@ -3419,6 +3514,11 @@ def render_analizar():
             st.session_state["modal_carga_exito_activo"] = False
             st.rerun()
 
+    # 10. Botón invisible para cerrar popup de error
+    with columnas_totales[idx_transversal + 5]:
+        if st.button("\u200b", key="btn_hidden_cerrar_popup_error"):
+            st.session_state["modal_error_analisis_activo"] = False
+            st.rerun()
 # -----------------------------------------------------------------
 # PANTALLA 5: REPORTES
 # -----------------------------------------------------------------
