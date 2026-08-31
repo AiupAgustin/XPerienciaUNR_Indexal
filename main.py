@@ -1279,6 +1279,12 @@ def render_analizar():
         st.session_state["modal_carga_exito_activo"] = False
     if "modal_error_analisis_activo" not in st.session_state:
         st.session_state["modal_error_analisis_activo"] = False
+    if "modal_error_formato_activo" not in st.session_state:
+        st.session_state["modal_error_formato_activo"] = False
+    if "modal_error_peso_activo" not in st.session_state:
+        st.session_state["modal_error_peso_activo"] = False
+    if "uploader_key_version" not in st.session_state:
+        st.session_state["uploader_key_version"] = 0
     if "analisis_en_progreso" not in st.session_state:
         st.session_state["analisis_en_progreso"] = False
     if "paso_analisis_idx" not in st.session_state:
@@ -1287,6 +1293,7 @@ def render_analizar():
         st.session_state["modal_scroll_y"] = 0
     if "bloques_temporales" not in st.session_state:
         st.session_state["bloques_temporales"] = []
+    
 
     # Estado de módulos transversales
     if "transversal_wcag" not in st.session_state:
@@ -1567,6 +1574,8 @@ def render_analizar():
     modal_bienvenida_activo = "active" if not st.session_state["terminos_aceptados"] else ""
     modal_exito_activo = "active" if st.session_state["modal_carga_exito_activo"] else ""
     modal_error_activo = "active" if st.session_state["modal_error_analisis_activo"] else ""
+    modal_err_formato_activo = "active" if st.session_state["modal_error_formato_activo"] else ""
+    modal_err_peso_activo = "active" if st.session_state["modal_error_peso_activo"] else ""
     js_posicionador = obtener_js_posicionamiento_modal()
 
     sidebar_html = obtener_sidebar_html(
@@ -2969,6 +2978,34 @@ def render_analizar():
             </div>
         </div>
 
+        <!-- POPUP DE ARCHIVO NO COMPATIBLE -->
+        <div class="modal-overlay {modal_err_formato_activo}" id="modalErrorFormato">
+            <div class="error-analysis-card">
+                <button class="success-close-btn" id="btnCerrarPopupErrorFormato">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="error-badge-icon">!</div>
+                <h3 class="error-title">Archivo no compatible</h3>
+                <p class="error-desc">
+                    Solo se aceptan imágenes en formato JPG, PNG, JPEG o WebP.
+                </p>
+            </div>
+        </div>
+
+        <!-- POPUP DE ARCHIVO DEMASIADO PESADO -->
+        <div class="modal-overlay {modal_err_peso_activo}" id="modalErrorPeso">
+            <div class="error-analysis-card">
+                <button class="success-close-btn" id="btnCerrarPopupErrorPeso">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="error-badge-icon">!</div>
+                <h3 class="error-title">Archivo demasiado pesado</h3>
+                <p class="error-desc">
+                    El archivo supera el límite de 10 MB.
+                </p>
+            </div>
+        </div>
+
         <script>
             {js_posicionador}
 
@@ -2985,6 +3022,16 @@ def render_analizar():
             const modalExito = document.getElementById('modalCargaExito');
             if (modalExito && modalExito.classList.contains('active')) {{
                 posicionarModal(modalExito);
+            }}
+
+            const modalErrFormato = document.getElementById('modalErrorFormato');
+            if (modalErrFormato && modalErrFormato.classList.contains('active')) {{
+                posicionarModal(modalErrFormato);
+            }}
+
+            const modalErrPeso = document.getElementById('modalErrorPeso');
+            if (modalErrPeso && modalErrPeso.classList.contains('active')) {{
+                posicionarModal(modalErrPeso);
             }}
 
             const parentDoc = window.parent.document;
@@ -3235,6 +3282,28 @@ def render_analizar():
                 }});
             }}
 
+            const btnCerrarErrFormato = document.getElementById('btnCerrarPopupErrorFormato');
+            if (btnCerrarErrFormato) {{
+                btnCerrarErrFormato.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxCerrarFormato = {17 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxCerrarFormato) {{
+                        allButtons[idxCerrarFormato].click();
+                    }}
+                }});
+            }}
+
+            const btnCerrarErrPeso = document.getElementById('btnCerrarPopupErrorPeso');
+            if (btnCerrarErrPeso) {{
+                btnCerrarErrPeso.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxCerrarPeso = {18 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxCerrarPeso) {{
+                        allButtons[idxCerrarPeso].click();
+                    }}
+                }});
+            }}
+
         </script>
     </body>
     </html>
@@ -3247,14 +3316,34 @@ def render_analizar():
     # -------------------------------------------------------------------------
     archivo_subido = st.file_uploader(
         "hidden_uploader",
-        type=["png", "jpg", "jpeg", "webp"],
-        key="uploader_nativo_indexal",
+        type=None,
+        key=f"uploader_nativo_indexal_{st.session_state['uploader_key_version']}",
         label_visibility="collapsed",
     )
 
     if archivo_subido is not None:
-        # Guardado físico único e instantáneo
-        if not st.session_state["imagen_cargada"] or st.session_state.get("nombre_imagen") != archivo_subido.name:
+        ext = archivo_subido.name.split(".")[-1].lower() if "." in archivo_subido.name else ""
+        
+        # 1. Si el formato no es compatible
+        if ext not in ["png", "jpg", "jpeg", "webp"]:
+            st.session_state["modal_error_formato_activo"] = True
+            st.session_state["modal_error_peso_activo"] = False
+            st.session_state["modal_carga_exito_activo"] = False
+            st.session_state["imagen_cargada"] = False
+            st.session_state["uploader_key_version"] += 1
+            st.rerun()
+
+        # 2. Si supera los 10 MB
+        elif archivo_subido.size > 10 * 1024 * 1024:
+            st.session_state["modal_error_peso_activo"] = True
+            st.session_state["modal_error_formato_activo"] = False
+            st.session_state["modal_carga_exito_activo"] = False
+            st.session_state["imagen_cargada"] = False
+            st.session_state["uploader_key_version"] += 1
+            st.rerun()
+
+        # 3. Archivo válido: Guardado físico único e instantáneo
+        elif not st.session_state["imagen_cargada"] or st.session_state.get("nombre_imagen") != archivo_subido.name:
             carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "imagenes_analizadas"))
             if not os.path.exists(carpeta_destino):
                 os.makedirs(carpeta_destino, exist_ok=True)
@@ -3274,7 +3363,7 @@ def render_analizar():
 
     # Botones ocultos de navegación y estado
     botones_modulos_count = len(lista_modulos_activa)
-    columnas_totales = st.columns(17 + botones_modulos_count)
+    columnas_totales = st.columns(19 + botones_modulos_count)
 
     # 1. Navegación del Menú Lateral (0, 1, 2)
     with columnas_totales[0]:
@@ -3518,6 +3607,18 @@ def render_analizar():
     with columnas_totales[idx_transversal + 5]:
         if st.button("\u200b", key="btn_hidden_cerrar_popup_error"):
             st.session_state["modal_error_analisis_activo"] = False
+            st.rerun()
+
+    # 11. Botón invisible para cerrar popup de error de formato
+    with columnas_totales[idx_transversal + 6]:
+        if st.button("\u200b", key="btn_hidden_cerrar_popup_formato"):
+            st.session_state["modal_error_formato_activo"] = False
+            st.rerun()
+
+    # 12. Botón invisible para cerrar popup de error de peso
+    with columnas_totales[idx_transversal + 7]:
+        if st.button("\u200b", key="btn_hidden_cerrar_popup_peso"):
+            st.session_state["modal_error_peso_activo"] = False
             st.rerun()
 # -----------------------------------------------------------------
 # PANTALLA 5: REPORTES
