@@ -66,6 +66,13 @@ def renderizar_reporte_html(master_json: dict) -> str:
     if ruta_img:
         metadata["imagen_b64"] = imagen_a_base64(ruta_img)
         
+        # Extraer y limpiar el nombre de la pieza analizada (elimina el timestamp inicial)
+        nombre_archivo = os.path.basename(ruta_img)
+        if "_" in nombre_archivo and nombre_archivo.split("_", 1)[0].isdigit():
+            metadata["nombre_pieza"] = nombre_archivo.split("_", 1)[1]
+        else:
+            metadata["nombre_pieza"] = nombre_archivo
+        
     bloques = datos_render.get("bloques", [])
     convertir_todas_las_imagenes_a_b64(bloques)
     

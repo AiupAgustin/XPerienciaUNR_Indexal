@@ -172,7 +172,7 @@
         <h1 class="header-title">{{ metadata.titulo_reporte if metadata.titulo_reporte else "Auditoría de Diseño Visual" }}</h1>
         <p class="header-meta">
             <strong>Pieza analizada:</strong> 
-            {{ metadata.imagen_path.split('\\')[-1].split('/')[-1] if metadata.imagen_path else "Imagen" }}
+            {{ metadata.nombre_pieza if metadata.nombre_pieza else (metadata.imagen_path.split('\\')[-1].split('/')[-1] if metadata.imagen_path else "Imagen") }}
         </p>
     </div>
 
