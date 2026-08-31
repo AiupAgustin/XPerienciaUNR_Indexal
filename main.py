@@ -1437,7 +1437,7 @@ def render_analizar():
         texto_subida_btn = "Cambiar archivo"
     else:
         texto_subida_main = "Arrastrá una imagen aquí"
-        texto_subida_sub = "PNG, JPG, WebP · hasta 20 MB"
+        texto_subida_sub = "PNG, JPG, JPEG, WebP · hasta 10 MB"
         texto_subida_btn = "Seleccionar archivo"
 
     # 1. HTML de la tarjeta maestra
