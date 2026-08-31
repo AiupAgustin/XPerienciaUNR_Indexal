@@ -1283,6 +1283,10 @@ def render_analizar():
         st.session_state["modal_error_formato_activo"] = False
     if "modal_error_peso_activo" not in st.session_state:
         st.session_state["modal_error_peso_activo"] = False
+    if "modal_error_res_min_activo" not in st.session_state:
+        st.session_state["modal_error_res_min_activo"] = False
+    if "modal_error_res_max_activo" not in st.session_state:
+        st.session_state["modal_error_res_max_activo"] = False
     if "uploader_key_version" not in st.session_state:
         st.session_state["uploader_key_version"] = 0
     if "analisis_en_progreso" not in st.session_state:
@@ -1576,6 +1580,8 @@ def render_analizar():
     modal_error_activo = "active" if st.session_state["modal_error_analisis_activo"] else ""
     modal_err_formato_activo = "active" if st.session_state["modal_error_formato_activo"] else ""
     modal_err_peso_activo = "active" if st.session_state["modal_error_peso_activo"] else ""
+    modal_err_res_min_activo = "active" if st.session_state["modal_error_res_min_activo"] else ""
+    modal_err_res_max_activo = "active" if st.session_state["modal_error_res_max_activo"] else ""
     js_posicionador = obtener_js_posicionamiento_modal()
 
     sidebar_html = obtener_sidebar_html(
@@ -3006,6 +3012,34 @@ def render_analizar():
             </div>
         </div>
 
+        <!-- POPUP DE RESOLUCIÓN INSUFICIENTE -->
+        <div class="modal-overlay {modal_err_res_min_activo}" id="modalErrorResMin">
+            <div class="error-analysis-card">
+                <button class="success-close-btn" id="btnCerrarPopupErrorResMin">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="error-badge-icon">!</div>
+                <h3 class="error-title">Resolución insuficiente</h3>
+                <p class="error-desc">
+                    La imagen es demasiado pequeña. Debe tener al menos 600×600 píxeles.
+                </p>
+            </div>
+        </div>
+
+        <!-- POPUP DE RESOLUCIÓN EXCESIVA -->
+        <div class="modal-overlay {modal_err_res_max_activo}" id="modalErrorResMax">
+            <div class="error-analysis-card">
+                <button class="success-close-btn" id="btnCerrarPopupErrorResMax">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="error-badge-icon">!</div>
+                <h3 class="error-title">Resolución excesiva</h3>
+                <p class="error-desc">
+                    La imagen supera las dimensiones máximas permitidas (4000×4000 píxeles).
+                </p>
+            </div>
+        </div>
+
         <script>
             {js_posicionador}
 
@@ -3032,6 +3066,16 @@ def render_analizar():
             const modalErrPeso = document.getElementById('modalErrorPeso');
             if (modalErrPeso && modalErrPeso.classList.contains('active')) {{
                 posicionarModal(modalErrPeso);
+            }}
+
+            const modalErrResMin = document.getElementById('modalErrorResMin');
+            if (modalErrResMin && modalErrResMin.classList.contains('active')) {{
+                posicionarModal(modalErrResMin);
+            }}
+
+            const modalErrResMax = document.getElementById('modalErrorResMax');
+            if (modalErrResMax && modalErrResMax.classList.contains('active')) {{
+                posicionarModal(modalErrResMax);
             }}
 
             const parentDoc = window.parent.document;
@@ -3304,6 +3348,28 @@ def render_analizar():
                 }});
             }}
 
+            const btnCerrarErrResMin = document.getElementById('btnCerrarPopupErrorResMin');
+            if (btnCerrarErrResMin) {{
+                btnCerrarErrResMin.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxCerrarResMin = {19 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxCerrarResMin) {{
+                        allButtons[idxCerrarResMin].click();
+                    }}
+                }});
+            }}
+
+            const btnCerrarErrResMax = document.getElementById('btnCerrarPopupErrorResMax');
+            if (btnCerrarErrResMax) {{
+                btnCerrarErrResMax.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxCerrarResMax = {20 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxCerrarResMax) {{
+                        allButtons[idxCerrarResMax].click();
+                    }}
+                }});
+            }}
+
         </script>
     </body>
     </html>
@@ -3328,6 +3394,8 @@ def render_analizar():
         if ext not in ["png", "jpg", "jpeg", "webp"]:
             st.session_state["modal_error_formato_activo"] = True
             st.session_state["modal_error_peso_activo"] = False
+            st.session_state["modal_error_res_min_activo"] = False
+            st.session_state["modal_error_res_max_activo"] = False
             st.session_state["modal_carga_exito_activo"] = False
             st.session_state["imagen_cargada"] = False
             st.session_state["uploader_key_version"] += 1
@@ -3337,33 +3405,62 @@ def render_analizar():
         elif archivo_subido.size > 10 * 1024 * 1024:
             st.session_state["modal_error_peso_activo"] = True
             st.session_state["modal_error_formato_activo"] = False
+            st.session_state["modal_error_res_min_activo"] = False
+            st.session_state["modal_error_res_max_activo"] = False
             st.session_state["modal_carga_exito_activo"] = False
             st.session_state["imagen_cargada"] = False
             st.session_state["uploader_key_version"] += 1
             st.rerun()
 
-        # 3. Archivo válido: Guardado físico único e instantáneo
-        elif not st.session_state["imagen_cargada"] or st.session_state.get("nombre_imagen") != archivo_subido.name:
-            carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "imagenes_analizadas"))
-            if not os.path.exists(carpeta_destino):
-                os.makedirs(carpeta_destino, exist_ok=True)
+        else: 
+            from PIL import Image
+            img = Image.open(archivo_subido)
+            ancho, alto = img.size
 
-            nombre_guardado = f"{int(time.time())}_{archivo_subido.name}"
-            ruta_guardado = os.path.join(carpeta_destino, nombre_guardado)
+            # 3. Validación de resolución mínima (< 600 px)
+            if ancho < 600 or alto < 600:
+                st.session_state["modal_error_res_min_activo"] = True
+                st.session_state["modal_error_res_max_activo"] = False
+                st.session_state["modal_error_formato_activo"] = False
+                st.session_state["modal_error_peso_activo"] = False
+                st.session_state["modal_carga_exito_activo"] = False
+                st.session_state["imagen_cargada"] = False
+                st.session_state["uploader_key_version"] += 1
+                st.rerun()
 
-            with open(ruta_guardado, "wb") as f:
-                f.write(archivo_subido.getbuffer())
+            # 4. Validación de resolución máxima (> 4000 px)
+            elif ancho > 4000 or alto > 4000:
+                st.session_state["modal_error_res_max_activo"] = True
+                st.session_state["modal_error_res_min_activo"] = False
+                st.session_state["modal_error_formato_activo"] = False
+                st.session_state["modal_error_peso_activo"] = False
+                st.session_state["modal_carga_exito_activo"] = False
+                st.session_state["imagen_cargada"] = False
+                st.session_state["uploader_key_version"] += 1
+                st.rerun()
 
-            st.session_state["imagen_cargada"] = True
-            st.session_state["nombre_imagen"] = archivo_subido.name
-            st.session_state["archivo_guardado_path"] = nombre_guardado
-            st.session_state["paso_actual"] = max(st.session_state["paso_actual"], 2)
-            st.session_state["modal_carga_exito_activo"] = True
-            st.rerun()
+            # 5. Archivo válido: Guardado físico único e instantáneo
+            elif not st.session_state["imagen_cargada"] or st.session_state.get("nombre_imagen") != archivo_subido.name:
+                carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "imagenes_analizadas"))
+                if not os.path.exists(carpeta_destino):
+                    os.makedirs(carpeta_destino, exist_ok=True)
+
+                nombre_guardado = f"{int(time.time())}_{archivo_subido.name}"
+                ruta_guardado = os.path.join(carpeta_destino, nombre_guardado)
+
+                with open(ruta_guardado, "wb") as f:
+                    f.write(archivo_subido.getbuffer())
+
+                st.session_state["imagen_cargada"] = True
+                st.session_state["nombre_imagen"] = archivo_subido.name
+                st.session_state["archivo_guardado_path"] = nombre_guardado
+                st.session_state["paso_actual"] = max(st.session_state["paso_actual"], 2)
+                st.session_state["modal_carga_exito_activo"] = True
+                st.rerun()
 
     # Botones ocultos de navegación y estado
     botones_modulos_count = len(lista_modulos_activa)
-    columnas_totales = st.columns(19 + botones_modulos_count)
+    columnas_totales = st.columns(21 + botones_modulos_count)
 
     # 1. Navegación del Menú Lateral (0, 1, 2)
     with columnas_totales[0]:
@@ -3619,6 +3716,18 @@ def render_analizar():
     with columnas_totales[idx_transversal + 7]:
         if st.button("\u200b", key="btn_hidden_cerrar_popup_peso"):
             st.session_state["modal_error_peso_activo"] = False
+            st.rerun()
+
+    # 13. Botón invisible para cerrar popup de error de resolución mínima
+    with columnas_totales[idx_transversal + 8]:
+        if st.button("\u200b", key="btn_hidden_cerrar_popup_res_min"):
+            st.session_state["modal_error_res_min_activo"] = False
+            st.rerun()
+
+    # 14. Botón invisible para cerrar popup de error de resolución máxima
+    with columnas_totales[idx_transversal + 9]:
+        if st.button("\u200b", key="btn_hidden_cerrar_popup_res_max"):
+            st.session_state["modal_error_res_max_activo"] = False
             st.rerun()
 # -----------------------------------------------------------------
 # PANTALLA 5: REPORTES
