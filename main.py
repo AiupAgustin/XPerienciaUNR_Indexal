@@ -33,7 +33,7 @@ def obtener_js_posicionamiento_modal():
 
         function calcularYUbicar() {
             try {
-                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card');
+                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card, .success-upload-card');
                 if (!card) return;
 
                 const parentWin = window.parent;
@@ -61,7 +61,7 @@ def obtener_js_posicionamiento_modal():
 
                 card.style.marginTop = Math.max(40, Math.round(posFinal)) + 'px';
             } catch (e) {
-                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card');
+                const card = modalElem.querySelector('.popup-card, .welcome-card, .loading-card, .success-upload-card');
                 if (card) {
                     card.style.marginTop = '180px';
                 }
@@ -1275,6 +1275,8 @@ def render_analizar():
         st.session_state["tipo_analisis"] = None
     if "imagen_cargada" not in st.session_state:
         st.session_state["imagen_cargada"] = False
+    if "modal_carga_exito_activo" not in st.session_state:
+        st.session_state["modal_carga_exito_activo"] = False
     if "analisis_en_progreso" not in st.session_state:
         st.session_state["analisis_en_progreso"] = False
     if "paso_analisis_idx" not in st.session_state:
@@ -1561,6 +1563,7 @@ def render_analizar():
     logo_bienvenida = cargar_svg_base64("assets/iconos/logo_popup_bienvenida.svg")
     icon_spinner = cargar_svg_base64("assets/iconos/spinner.svg")
     modal_bienvenida_activo = "active" if not st.session_state["terminos_aceptados"] else ""
+    modal_exito_activo = "active" if st.session_state["modal_carga_exito_activo"] else ""
     js_posicionador = obtener_js_posicionamiento_modal()
 
     sidebar_html = obtener_sidebar_html(
@@ -2580,6 +2583,89 @@ def render_analizar():
                 text-decoration: underline;
             }}
 
+        /* --- POPUP DE ÉXITO DE CARGA --- */
+            .success-upload-card {{
+                position: relative;
+                width: 460px;
+                max-width: 90%;
+                background: #E4F8EB;
+                border: 1.5px solid #2FA36B;
+                border-radius: 20px;
+                padding: 36px 32px 32px 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                box-sizing: border-box;
+                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+                transform: scale(0.95);
+                transition: transform 0.25s ease;
+            }}
+
+            .modal-overlay.active .success-upload-card {{
+                transform: scale(1);
+            }}
+
+            .success-close-btn {{
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                width: 32px;
+                height: 32px;
+                background: #F3F4F6;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                border: none;
+                transition: background-color 0.15s ease;
+            }}
+
+            .success-close-btn:hover {{
+                background: #E5E7EB;
+            }}
+
+            .success-close-btn svg {{
+                width: 14px;
+                height: 14px;
+                fill: #444748;
+            }}
+
+            .success-badge-icon {{
+                width: 52px;
+                height: 52px;
+                border-radius: 50%;
+                background-color: #2FA36B;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 20px;
+            }}
+
+            .success-badge-icon svg {{
+                width: 24px;
+                height: 24px;
+                fill: #FFFFFF;
+            }}
+
+            .success-title {{
+                color: #111111;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 20px;
+                font-weight: 700;
+                margin: 0 0 12px 0;
+            }}
+
+            .success-desc {{
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 14px;
+                line-height: 1.5;
+                color: #444748;
+                margin: 0;
+                font-weight: 400;
+            }}
+
         </style>
     </head>
     <body>
@@ -2793,6 +2879,22 @@ def render_analizar():
                         </div>
                     </div>
                 </div>
+        
+        <!-- POPUP DE ÉXITO DE CARGA -->
+        <div class="modal-overlay {modal_exito_activo}" id="modalCargaExito">
+            <div class="success-upload-card">
+                <button class="success-close-btn" id="btnCerrarPopupExito">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="success-badge-icon">
+                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                </div>
+                <h3 class="success-title">Imagen cargada correctamente</h3>
+                <p class="success-desc">
+                    Tu archivo está listo. Continuá seleccionando el tipo de análisis.
+                </p>
+            </div>
+        </div>
 
         <script>
             {js_posicionador}
@@ -2805,6 +2907,11 @@ def render_analizar():
             const modalCarga = document.getElementById('modalCargaProgreso');
             if (modalCarga && modalCarga.classList.contains('active')) {{
                 posicionarModal(modalCarga);
+            }}
+
+            const modalExito = document.getElementById('modalCargaExito');
+            if (modalExito && modalExito.classList.contains('active')) {{
+                posicionarModal(modalExito);
             }}
 
             const parentDoc = window.parent.document;
@@ -3028,6 +3135,18 @@ def render_analizar():
                     }});
                 }}
             }}
+
+            // Cerrar popup de éxito
+            const btnCerrarExito = document.getElementById('btnCerrarPopupExito');
+            if (btnCerrarExito) {{
+                btnCerrarExito.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxCerrarExito = {15 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxCerrarExito) {{
+                        allButtons[idxCerrarExito].click();
+                    }}
+                }});
+            }}
         </script>
     </body>
     </html>
@@ -3062,11 +3181,12 @@ def render_analizar():
             st.session_state["nombre_imagen"] = archivo_subido.name
             st.session_state["archivo_guardado_path"] = nombre_guardado
             st.session_state["paso_actual"] = max(st.session_state["paso_actual"], 2)
+            st.session_state["modal_carga_exito_activo"] = True
             st.rerun()
 
     # Botones ocultos de navegación y estado
     botones_modulos_count = len(lista_modulos_activa)
-    columnas_totales = st.columns(15 + botones_modulos_count)
+    columnas_totales = st.columns(16 + botones_modulos_count)
 
     # 1. Navegación del Menú Lateral (0, 1, 2)
     with columnas_totales[0]:
@@ -3291,6 +3411,12 @@ def render_analizar():
     with columnas_totales[idx_transversal + 3]:
         if st.button("\u200b", key="btn_hidden_aceptar_terminos"):
             st.session_state["terminos_aceptados"] = True
+            st.rerun()
+
+    # 9. Botón invisible para cerrar popup de éxito
+    with columnas_totales[idx_transversal + 4]:
+        if st.button("\u200b", key="btn_hidden_cerrar_popup_exito"):
+            st.session_state["modal_carga_exito_activo"] = False
             st.rerun()
 
 # -----------------------------------------------------------------
