@@ -1,5 +1,8 @@
 
-
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+transformers
 Pillow==10.3.0
 requests==2.34.2
 opencv-contrib-python-headless
