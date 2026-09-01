@@ -14,6 +14,7 @@ from core.reportes.generador_html import renderizar_reporte_html
 from core.reportes.generador_pdf import generar_reporte_pdf
 from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_ID, MAPAS_POR_CATEGORIA
 from core.categorias.cat0_analisis_semiotico import MAPA_CHECKBOXES_CAT0
+from seguridad import verificar_contenido_seguro
 
 # Ruta absoluta garantizada a assets/imagenes
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1478,6 +1479,10 @@ def render_analizar():
         st.session_state["modal_error_res_min_activo"] = False
     if "modal_error_res_max_activo" not in st.session_state:
         st.session_state["modal_error_res_max_activo"] = False
+    if "modal_error_seguridad_activo" not in st.session_state:
+        st.session_state["modal_error_seguridad_activo"] = False
+    if "motivo_error_seguridad" not in st.session_state:
+        st.session_state["motivo_error_seguridad"] = ""
     if "modal_privacidad_activo" not in st.session_state:
         st.session_state["modal_privacidad_activo"] = False
     if "uploader_key_version" not in st.session_state:
@@ -1775,6 +1780,8 @@ def render_analizar():
     modal_err_peso_activo = "active" if st.session_state["modal_error_peso_activo"] else ""
     modal_err_res_min_activo = "active" if st.session_state["modal_error_res_min_activo"] else ""
     modal_err_res_max_activo = "active" if st.session_state["modal_error_res_max_activo"] else ""
+    modal_err_seguridad_activo = "active" if st.session_state["modal_error_seguridad_activo"] else ""
+    motivo_seguridad = st.session_state.get("motivo_error_seguridad", "La imagen contiene material que infringe las políticas de contenido permitido.")
     js_posicionador = obtener_js_posicionamiento_modal()
 
     sidebar_html = obtener_sidebar_html(
@@ -3233,6 +3240,20 @@ def render_analizar():
             </div>
         </div>
 
+        <!-- POPUP DE CONTENIDO NO PERMITIDO / SEGURIDAD -->
+        <div class="modal-overlay {modal_err_seguridad_activo}" id="modalErrorSeguridad">
+            <div class="error-analysis-card">
+                <button class="success-close-btn" id="btnCerrarPopupErrorSeguridad">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="error-badge-icon">!</div>
+                <h3 class="error-title">Contenido no permitido</h3>
+                <p class="error-desc">
+                    {motivo_seguridad}
+                </p>
+            </div>
+        </div>
+
         <!-- POPUP POLITICA DE PRIVACIDAD -->
         {obtener_modal_privacidad_html(logo_bienvenida, st.session_state["modal_privacidad_activo"])}
 
@@ -3272,6 +3293,11 @@ def render_analizar():
             const modalErrResMax = document.getElementById('modalErrorResMax');
             if (modalErrResMax && modalErrResMax.classList.contains('active')) {{
                 posicionarModal(modalErrResMax);
+            }}
+
+            const modalErrSeguridad = document.getElementById('modalErrorSeguridad');
+            if (modalErrSeguridad && modalErrSeguridad.classList.contains('active')) {{
+                posicionarModal(modalErrSeguridad);
             }}
 
             const parentDoc = window.parent.document;
@@ -3594,6 +3620,17 @@ def render_analizar():
                 }});
             }}
 
+            const btnCerrarErrSeguridad = document.getElementById('btnCerrarPopupErrorSeguridad');
+            if (btnCerrarErrSeguridad) {{
+                btnCerrarErrSeguridad.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxCerrarSeguridad = {23 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxCerrarSeguridad) {{
+                        allButtons[idxCerrarSeguridad].click();
+                    }}
+                }});
+            }}
+
         </script>
     </body>
     </html>
@@ -3675,6 +3712,24 @@ def render_analizar():
                 with open(ruta_guardado, "wb") as f:
                     f.write(archivo_subido.getbuffer())
 
+                # Verificación de moderación
+                es_segura, motivo = verificar_contenido_seguro(ruta_guardado)
+
+                if not es_segura:
+                    if os.path.exists(ruta_guardado):
+                        os.remove(ruta_guardado)
+
+                    st.session_state["modal_error_seguridad_activo"] = True
+                    st.session_state["motivo_error_seguridad"] = motivo or "La imagen contiene material no permitido según nuestras políticas de seguridad."
+                    st.session_state["modal_error_formato_activo"] = False
+                    st.session_state["modal_error_peso_activo"] = False
+                    st.session_state["modal_error_res_min_activo"] = False
+                    st.session_state["modal_error_res_max_activo"] = False
+                    st.session_state["modal_carga_exito_activo"] = False
+                    st.session_state["imagen_cargada"] = False
+                    st.session_state["uploader_key_version"] += 1
+                    st.rerun()
+
                 st.session_state["imagen_cargada"] = True
                 st.session_state["nombre_imagen"] = archivo_subido.name
                 st.session_state["archivo_guardado_path"] = nombre_guardado
@@ -3684,7 +3739,7 @@ def render_analizar():
 
     # Botones ocultos de navegación y estado
     botones_modulos_count = len(lista_modulos_activa)
-    columnas_totales = st.columns(23 + botones_modulos_count)
+    columnas_totales = st.columns(24 + botones_modulos_count)
 
     # 1. Navegación del Menú Lateral (0, 1, 2)
     with columnas_totales[0]:
@@ -3964,6 +4019,12 @@ def render_analizar():
     with columnas_totales[idx_transversal + 11]:
         if st.button("\u200b", key="btn_hidden_cerrar_popup_privacidad"):
             st.session_state["modal_privacidad_activo"] = False
+            st.rerun()
+
+    # 17. Botón invisible para cerrar popup de error de seguridad
+    with columnas_totales[idx_transversal + 12]:
+        if st.button("\u200b", key="btn_hidden_cerrar_popup_seguridad"):
+            st.session_state["modal_error_seguridad_activo"] = False
             st.rerun()
 # -----------------------------------------------------------------
 # PANTALLA 5: REPORTES
