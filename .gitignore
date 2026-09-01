@@ -21,7 +21,20 @@ env/
 Thumbs.db
 .DS_Store
 
-# --- ARCHIVOS DE DATOS / CREDENCIALES (A FUTURO) ---
-# Si después guardás las API keys de Replicate en un archivo .env, esto evita que se filtren
+# --- ARCHIVOS DE DATOS / CREDENCIALES ---
 .env
 *.log
+# Secretos y credenciales de Streamlit
+.streamlit/secrets.toml
+
+# --- ARCHIVOS TEMPORALES DE INDEXAL ---
+# Ignora las imágenes subidas localmente y los PDFs temporales de exportación
+data/imagenes_analizadas/*
+!data/imagenes_analizadas/.gitkeep
+assets/reporte_temp*.pdf
+assets/temp_*.pdf
+
+# Salidas generadas automáticamente (heatmaps y reportes temporales)
+output/
+data/imagenes_analizadas/*
+!data/imagenes_analizadas/.gitkeep
