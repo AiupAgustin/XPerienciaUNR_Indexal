@@ -172,14 +172,14 @@
         <h1 class="header-title">{{ metadata.titulo_reporte if metadata.titulo_reporte else "Auditoría de Diseño Visual" }}</h1>
         <p class="header-meta">
             <strong>Pieza analizada:</strong> 
-            {{ metadata.nombre_pieza if metadata.nombre_pieza else (metadata.imagen_path.split('\\')[-1].split('/')[-1] if metadata.imagen_path else "Imagen") }}
+            {{ metadata.nombre_pieza if metadata.nombre_pieza else "Imagen analizada" }}
         </p>
     </div>
 
-    {% if metadata.imagen_path %}
+    {% if metadata.imagen_b64 or metadata.imagen_url or metadata.imagen_path %}
     <div class="preview-container">
         <div class="preview-title">Pieza Gráfica en Análisis</div>
-        <img src="{{ metadata.imagen_b64 or metadata.imagen_path }}" class="preview-img" alt="Pieza a analizar" />
+        <img src="{{ metadata.imagen_b64 or metadata.imagen_url or metadata.imagen_path }}" class="preview-img" alt="Pieza a analizar" />
     </div>
     {% endif %}
 
@@ -213,7 +213,7 @@
                         <tr>
                             <td class="clave-td">{{ sub_key | replace('_', ' ') }}</td>
                             <td class="valor-td">
-                                {% if sub_val is string and (sub_val.startswith('data:image') or sub_val.lower().endswith('.jpg') or sub_val.lower().endswith('.png') or sub_val.lower().endswith('.jpeg')) %}
+                                {% if sub_val is string and (sub_val.startswith('data:image') or sub_val.startswith('http://') or sub_val.startswith('https://') or sub_val.lower().endswith('.jpg') or sub_val.lower().endswith('.png') or sub_val.lower().endswith('.jpeg') or sub_val.lower().endswith('.webp')) %}
                                     <div class="img-container">
                                         <img src="{{ sub_val }}" class="img-reporte">
                                     </div>
@@ -254,7 +254,7 @@
                         <tr>
                             <td class="clave-td">{{ key | replace('_', ' ') }}</td>
                             <td class="valor-td">
-                                {% if val is string and (val.startswith('data:image') or val.lower().endswith('.jpg') or val.lower().endswith('.png') or val.lower().endswith('.jpeg')) %}
+                                {% if val is string and (val.startswith('data:image') or val.startswith('http://') or val.startswith('https://') or val.lower().endswith('.jpg') or val.lower().endswith('.png') or val.lower().endswith('.jpeg') or val.lower().endswith('.webp')) %}
                                     <div class="img-container">
                                         <img src="{{ val }}" class="img-reporte">
                                     </div>

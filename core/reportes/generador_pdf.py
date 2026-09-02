@@ -21,9 +21,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 def generar_reporte_pdf(master_json: dict, output_pdf_path: str) -> str:
     """Convierte el HTML renderizado directamente a un archivo PDF en disco."""
+    # Aseguramos que el directorio de salida exista
+    directorio_salida = os.path.dirname(output_pdf_path)
+    if directorio_salida and not os.path.exists(directorio_salida):
+        os.makedirs(directorio_salida, exist_ok=True)
+
     html_content = renderizar_reporte_html(master_json)
     
-    # Se pasa la ruta absoluta de BASE_DIR convertida a string
+    # WeasyPrint resuelve tanto Base64 como URLs públicas de Supabase
     HTML(string=html_content, base_url=str(BASE_DIR)).write_pdf(output_pdf_path)
     
     return output_pdf_path

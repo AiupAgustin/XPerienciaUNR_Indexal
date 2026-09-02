@@ -9,6 +9,7 @@ import streamlit.components.v1 as components
 import json
 import math
 import uuid
+import tempfile
 from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_ID
 from core.reportes.generador_html import renderizar_reporte_html
 from core.reportes.generador_pdf import generar_reporte_pdf
@@ -16,6 +17,8 @@ from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_I
 from core.categorias.cat0_analisis_semiotico import MAPA_CHECKBOXES_CAT0
 from servicios.seguridad import verificar_contenido_seguro
 from servicios.notificaciones import enviar_correo_feedback
+from servicios.database import subir_imagen_galeria, guardar_analisis_en_galeria, obtener_items_galeria
+
 
 # Ruta absoluta garantizada a assets/imagenes
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -327,38 +330,26 @@ PATH_JSON_DB = os.path.join(PATH_DATA_DIR, "galeria_db.json")
 
 
 def cargar_galeria_historica():
-    """Lee galeria_db.json y convierte las imágenes almacenadas a Base64 para el HTML."""
-    if not os.path.exists(PATH_JSON_DB):
-        return []
-
+    """Lee las tarjetas almacenadas en Supabase y las formatea para la vista de Galería."""
     try:
-        with open(PATH_JSON_DB, "r", encoding="utf-8") as f:
-            registros = json.load(f)
-    except Exception:
+        registros = obtener_items_galeria()
+    except Exception as e:
+        print(f"Error al conectar con Supabase para cargar galería: {e}")
         return []
 
     galeria = []
     for reg in registros:
-        img_path = reg.get("imagen_path", "")
-        img_b64_uri = None
-
-        if img_path and os.path.exists(img_path):
-            try:
-                with open(img_path, "rb") as f:
-                    b64 = base64.b64encode(f.read()).decode("utf-8")
-                    ext = "png" if img_path.lower().endswith(".png") else "jpeg"
-                    img_b64_uri = f"data:image/{ext};base64,{b64}"
-            except Exception:
-                img_b64_uri = None
+        # Extraemos los metadatos almacenados en el master_json
+        meta = reg.get("master_json") or {}
 
         galeria.append(
             {
-                "id": reg["id"],
-                "categoria": reg["categoria"],
-                "filtro_key": reg["filtro_key"],
-                "descripcion": reg["descripcion"],
-                "modulo": reg["modulo"],
-                "imagen_url": img_b64_uri,
+                "id": str(reg.get("id")),
+                "categoria": reg.get("categoria") or meta.get("categoria", "Semiótico"),
+                "filtro_key": meta.get("filtro_key", "semiotico"),
+                "descripcion": meta.get("descripcion", "Análisis visual asistido por IA"),
+                "modulo": meta.get("modulo", "Diagnóstico visual"),
+                "imagen_url": reg.get("imagen_url"),  # URL pública directa de Supabase Storage
                 "color_placeholder": "#E5E7EB",
             }
         )
@@ -369,22 +360,14 @@ def cargar_galeria_historica():
 # FUNCIÓN AUXILIAR: Registrar Análisis en Galería
 # -----------------------------------------------------------------
 
-PATH_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "data"))
-PATH_IMG_DIR = os.path.join(PATH_DATA_DIR, "imagenes_analizadas")
-PATH_JSON_DB = os.path.join(PATH_DATA_DIR, "galeria_db.json")
-
-os.makedirs(PATH_IMG_DIR, exist_ok=True)
-
-
 def registrar_analisis_galeria(
     imagen_path,
     tipo_analisis,
     modulos_seleccionados,
     descripcion="Análisis visual asistido por IA",
+    master_json=None,
 ):
     try:
-        analisis_id = f"inf_{uuid.uuid4().hex[:8]}"
-
         # 1. Mapeo de Categoría
         mapa_nombres = {
             "semiotico": "Semiótico",
@@ -409,64 +392,56 @@ def registrar_analisis_galeria(
             "contexto_denotacion": ("F", "Contexto y denotación"),
         }
 
-        # Filtramos solo los módulos base seleccionados
         modulos_base_sel = [m for m in modulos_seleccionados if m in MAPA_LETRAS]
         total_modulos_posibles = len(MAPA_LETRAS)
 
-        # Evaluamos si hay transversales activos en la lista
         tiene_wcag = "transversal_wcag" in modulos_seleccionados
         tiene_hist = "transversal_historicas" in modulos_seleccionados
 
         if len(modulos_base_sel) == total_modulos_posibles:
             modulo_txt = "Análisis completo · 6 módulos"
-        
         elif len(modulos_base_sel) == 1:
-            letra, nombre = MAPA_LETRAS[modulos_base_sel[0]]
+            letra, _ = MAPA_LETRAS[modulos_base_sel[0]]
             modulo_txt = f"MÓDULO {letra}"
         elif len(modulos_base_sel) > 1:
             letras_activas = sorted([MAPA_LETRAS[m][0] for m in modulos_base_sel])
             modulo_txt = f"MÓDULOS {', '.join(letras_activas)}"
-
         elif tiene_wcag and tiene_hist:
             modulo_txt = "Módulos transversales · WCAG e Historia"
-
         elif tiene_wcag:
             modulo_txt = "Módulo Accesibilidad · WCAG 2.1"
-
         elif tiene_hist:
             modulo_txt = "Módulo Referencias históricas"
         else:
-            modulo_txt = "Diagnóstico visual" # Aunque no se puede hacer analisis sin ninguno
+            modulo_txt = "Diagnóstico visual"
 
-        nuevo_registro = {
-            "id": analisis_id,
+        # 3. Leer archivo y subirlo a Supabase Storage
+        nombre_archivo = os.path.basename(imagen_path)
+        with open(imagen_path, "rb") as f:
+            contenido_bytes = f.read()
+
+        imagen_url = subir_imagen_galeria(nombre_archivo, contenido_bytes)
+
+        # 4. Estructurar el JSON completo de la tarjeta
+        tarjeta_data = {
             "categoria": categoria_display,
-            "filtro_key": (
-                str(tipo_analisis).lower() if tipo_analisis else "semiotico"
-            ),
+            "filtro_key": str(tipo_analisis).lower() if tipo_analisis else "semiotico",
             "descripcion": descripcion,
-            "modulo": modulo_txt,  # 📍 Guardará: "MÓDULOS A, C" o "MÓDULO A" o "Análisis completo · 6 módulos"
-            "imagen_path": imagen_path,
-            "timestamp": time.time(),
+            "modulo": modulo_txt,
+            "master_json": master_json or {}
         }
 
-        # 3. Guardado en galeria_db.json
-        registros = []
-        if os.path.exists(PATH_JSON_DB):
-            try:
-                with open(PATH_JSON_DB, "r", encoding="utf-8") as f:
-                    registros = json.load(f)
-            except Exception:
-                registros = []
-
-        registros.insert(0, nuevo_registro)
-
-        with open(PATH_JSON_DB, "w", encoding="utf-8") as f:
-            json.dump(registros, f, ensure_ascii=False, indent=2)
+        # 5. Persistir en la tabla galeria de PostgreSQL
+        guardar_analisis_en_galeria(
+            titulo=nombre_archivo,
+            categoria=categoria_display,
+            imagen_url=imagen_url,
+            master_json=tarjeta_data
+        )
 
         return True
     except Exception as e:
-        print(f"Error al registrar en galeria_db: {e}")
+        print(f"Error al registrar en Supabase: {e}")
         return False
 
 # -----------------------------------------------------------------
@@ -850,6 +825,9 @@ def render_galeria():
 
     # MOCK DATA CON NOMBRES DE CATEGORÍA CORREGIDOS
     items_historicos = cargar_galeria_historica()
+
+    # Aseguramos que los valores nulos no rompan el cálculo de filtros
+    items_historicos = [it for it in items_historicos if it.get("filtro_key")]
 
     # Si hay un informe lo carga, sino muestra los mocks de ejemplo
     INFORMES_MOCK = (
@@ -3701,25 +3679,29 @@ def render_analizar():
                 st.session_state["uploader_key_version"] += 1
                 st.rerun()
 
-            # 5. Archivo válido: Guardado físico único e instantáneo
+            # 5. Archivo válido: Guardado temporal en el sistema (sin residuos locales)
             elif not st.session_state["imagen_cargada"] or st.session_state.get("nombre_imagen") != archivo_subido.name:
-                carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "imagenes_analizadas"))
-                if not os.path.exists(carpeta_destino):
-                    os.makedirs(carpeta_destino, exist_ok=True)
+                import tempfile
+                
+                # Leemos los bytes una sola vez
+                bytes_imagen = archivo_subido.getvalue()
 
-                nombre_guardado = f"{int(time.time())}_{archivo_subido.name}"
-                ruta_guardado = os.path.join(carpeta_destino, nombre_guardado)
+                # Creamos archivo efímero solo para moderación
+                sufijo = f".{ext}" if ext else ".png"
+                with tempfile.NamedTemporaryFile(delete=False, suffix=sufijo) as tmp_f:
+                    tmp_f.write(bytes_imagen)
+                    ruta_temp_check = tmp_f.name
 
-                with open(ruta_guardado, "wb") as f:
-                    f.write(archivo_subido.getbuffer())
-
-                # Verificación de moderación
-                es_segura, motivo = verificar_contenido_seguro(ruta_guardado)
+                try:
+                    es_segura, motivo = verificar_contenido_seguro(ruta_temp_check)
+                finally:
+                    if os.path.exists(ruta_temp_check):
+                        try:
+                            os.remove(ruta_temp_check)
+                        except Exception:
+                            pass
 
                 if not es_segura:
-                    if os.path.exists(ruta_guardado):
-                        os.remove(ruta_guardado)
-
                     st.session_state["modal_error_seguridad_activo"] = True
                     st.session_state["motivo_error_seguridad"] = motivo or "La imagen contiene material no permitido según nuestras políticas de seguridad."
                     st.session_state["modal_error_formato_activo"] = False
@@ -3731,9 +3713,11 @@ def render_analizar():
                     st.session_state["uploader_key_version"] += 1
                     st.rerun()
 
+                # Guardamos los bytes y metadatos en session_state
+                st.session_state["imagen_bytes"] = bytes_imagen
+                st.session_state["imagen_extension"] = sufijo
                 st.session_state["imagen_cargada"] = True
                 st.session_state["nombre_imagen"] = archivo_subido.name
-                st.session_state["archivo_guardado_path"] = nombre_guardado
                 st.session_state["paso_actual"] = max(st.session_state["paso_actual"], 2)
                 st.session_state["modal_carga_exito_activo"] = True
                 st.rerun()
@@ -3860,10 +3844,18 @@ def render_analizar():
                 st.rerun()
 
     # Ejecución paso a paso en sincronía real con la interfaz
+    # Ejecución paso a paso en sincronía real con la interfaz
     if st.session_state.get("analisis_en_progreso", False):
-        nombre_archivo = st.session_state.get("archivo_guardado_path", "")
-        carpeta_destino = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "imagenes_analizadas"))
-        ruta_completa_imagen = os.path.join(carpeta_destino, nombre_archivo)
+        import tempfile
+        
+        # Si aún no se creó el archivo temporal de trabajo para este análisis, lo creamos desde la memoria
+        if "ruta_temp_trabajo" not in st.session_state or not os.path.exists(st.session_state.get("ruta_temp_trabajo", "")):
+            sufijo = st.session_state.get("imagen_extension", ".png")
+            with tempfile.NamedTemporaryFile(delete=False, suffix=sufijo) as f_trabajo:
+                f_trabajo.write(st.session_state.get("imagen_bytes", b""))
+                st.session_state["ruta_temp_trabajo"] = f_trabajo.name
+
+        ruta_completa_imagen = st.session_state["ruta_temp_trabajo"]
 
         cat_str = st.session_state.get("tipo_analisis", "semiotico")
         cat_id = MAPA_CATEGORIA_A_ID.get(cat_str, 0)
@@ -3938,7 +3930,8 @@ def render_analizar():
                 imagen_path=ruta_completa_imagen,
                 tipo_analisis=cat_str,
                 modulos_seleccionados=modulos_a_ejecutar,
-                descripcion=resumen_desc
+                descripcion=resumen_desc,
+                master_json=master_json
             )
 
             nombre_img_original = st.session_state.get("nombre_imagen", "Analisis")
@@ -3957,6 +3950,14 @@ def render_analizar():
             if "reportes_sesion" not in st.session_state:
                 st.session_state["reportes_sesion"] = []
             st.session_state["reportes_sesion"].append(nuevo_rep)
+
+            # Eliminamos el archivo temporal de trabajo
+            if ruta_completa_imagen and os.path.exists(ruta_completa_imagen):
+                try:
+                    os.remove(ruta_completa_imagen)
+                except Exception:
+                    pass
+            st.session_state.pop("ruta_temp_trabajo", None)
 
             # Limpieza de estados y navegación directa a Reportes
             st.session_state["analisis_en_progreso"] = False
@@ -4294,7 +4295,10 @@ def render_reportes():
             generar_reporte_pdf(ultimo_json, ruta_temporal_pdf)
             with open(ruta_temporal_pdf, "rb") as f:
                 pdf_bytes_actual = f.read()
-            nom_img = os.path.splitext(os.path.basename(ultimo_json.get("metadata", {}).get("imagen_path", "Analisis")))[0]
+            
+            # Nombre limpio priorizando la sesión, con fallback seguro
+            nombre_base = st.session_state.get("nombre_imagen") or ultimo_json.get("metadata", {}).get("imagen_path", "Analisis")
+            nom_img = os.path.splitext(os.path.basename(nombre_base))[0]
             nombre_pdf_actual = f"Diagnostico_{nom_img}_indexal.pdf"
             pdf_generado_exitosamente = True
         except Exception as e:

@@ -28,7 +28,8 @@ def compilar_datos_reporte(
     mapa_global: dict = None, 
     lista_cb_seleccionados: list = None, 
     categoria_id: int = 0,
-    callback_progreso = None
+    callback_progreso = None,
+    imagen_url: str = None
 ) -> dict:
     """Ejecuta los checkboxes seleccionados y consolida el Master JSON."""
     
@@ -86,6 +87,7 @@ def compilar_datos_reporte(
     return {
         "metadata": {
             "imagen_path": imagen_path,
+            "imagen_url": imagen_url or imagen_path,
             "categoria_id": categoria_id,
             "titulo_reporte": titulos_por_categoria.get(categoria_id, "Auditoría de Diseño Visual"),
             "total_bloques": len(bloques_procesados)

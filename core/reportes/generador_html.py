@@ -2,6 +2,7 @@
 import base64
 import copy
 import os
+import streamlit as st
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
@@ -10,9 +11,13 @@ env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
 
 
 def imagen_a_base64(ruta_imagen: str) -> str:
-    """Lee una imagen del disco y la convierte a data URI en base64."""
+    """Lee una imagen del disco y la convierte a data URI en base64, o devuelve la URL/Base64 intacta."""
     if not ruta_imagen or not isinstance(ruta_imagen, str):
         return ""
+
+    # Si ya es una URL web (Supabase) o ya viene codificada en Base64, se devuelve tal cual
+    if ruta_imagen.startswith("http://") or ruta_imagen.startswith("https://") or ruta_imagen.startswith("data:image/"):
+        return ruta_imagen
     
     # Manejamos rutas relativas y absolutas
     ruta_limpia = ruta_imagen.replace("\\", os.sep).replace("/", os.sep)
@@ -62,12 +67,28 @@ def renderizar_reporte_html(master_json: dict) -> str:
     datos_render = copy.deepcopy(master_json)
     
     metadata = datos_render.get("metadata", {})
-    ruta_img = metadata.get("imagen_path", "")
-    if ruta_img:
-        metadata["imagen_b64"] = imagen_a_base64(ruta_img)
+    
+    # 1. Si tenemos los bytes directos en la sesión activa, generamos el Base64 en memoria instantáneamente
+    if st.session_state.get("imagen_bytes"):
+        raw_bytes = st.session_state["imagen_bytes"]
+        ext = st.session_state.get("imagen_extension", ".png").replace(".", "").lower()
+        mime = "jpeg" if ext in ["jpg", "jpeg"] else ext
+        b64_str = base64.b64encode(raw_bytes).decode("utf-8")
+        metadata["imagen_b64"] = f"data:image/{mime};base64,{b64_str}"
         
-        # Extraer y limpiar el nombre de la pieza analizada (elimina el timestamp inicial)
-        nombre_archivo = os.path.basename(ruta_img)
+    # 2. Si no hay bytes en sesión pero tenemos la URL pública de Supabase, la usamos directamente
+    elif metadata.get("imagen_url"):
+        metadata["imagen_b64"] = metadata["imagen_url"]
+        
+    # 3. Fallback habitual
+    else:
+        ruta_img = metadata.get("imagen_path", "")
+        if ruta_img:
+            metadata["imagen_b64"] = imagen_a_base64(ruta_img)
+        
+        # Extraer y limpiar el nombre de la pieza analizada (elimina el timestamp inicial y URLs)
+        nombre_crudo = ruta_img.split("?")[0]
+        nombre_archivo = os.path.basename(nombre_crudo)
         if "_" in nombre_archivo and nombre_archivo.split("_", 1)[0].isdigit():
             metadata["nombre_pieza"] = nombre_archivo.split("_", 1)[1]
         else:
