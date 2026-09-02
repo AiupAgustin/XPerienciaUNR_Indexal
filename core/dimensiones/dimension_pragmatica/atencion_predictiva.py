@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import base64
 import unicodedata
 from pathlib import Path
 from core.categorias.config import imread_unicode
@@ -129,34 +130,22 @@ def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "ou
         zona_fria = min(cuadrantes, key=cuadrantes.get)
         desc_zonas_frias = f"Las áreas de menor saliencia o zonas frías predominan en el cuadrante {zona_fria}."
 
-    # Generación y Guardado de la Imagen con Overlay
+    # Generación de la Imagen con Overlay en memoria RAM (sin tocar disco)
     heatmap_color = cv2.applyColorMap(saliency_map, cv2.COLORMAP_JET)
     overlay = cv2.addWeighted(img, 0.6, heatmap_color, 0.4, 0)
 
-    BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
-    output_dir = BASE_DIR / output_heatmap_dir
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    nombre_raw = Path(imagen_path).stem
-    nombre_base = unicodedata.normalize('NFKD', nombre_raw).encode('ASCII', 'ignore').decode('utf-8')
-    if not nombre_base:
-        nombre_base = "imagen"
-
-    path_salida_heatmap = str((output_dir / f"heatmap_{nombre_base}.jpg").resolve()).replace("\\", "/")
-
-    success, buffer = cv2.imencode(".jpg", overlay)
+    success, buffer = cv2.imencode(".jpg", overlay, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
     if success:
-        with open(path_salida_heatmap, "wb") as f:
-            f.write(buffer)
+        b64_str = base64.b64encode(buffer).decode("utf-8")
+        heatmap_data_uri = f"data:image/jpeg;base64,{b64_str}"
     else:
-        cv2.imwrite(path_salida_heatmap, overlay)
+        heatmap_data_uri = ""
 
     return {
         "status": "success",
         "metrica": "Atención Predictiva / HeatMap (Pragmática)",
         "resultado": {
-            "path_imagen_overlay": path_salida_heatmap,
+            "path_imagen_overlay": heatmap_data_uri,
             "descripcion_textual_zonas": {
                 "punto_entrada_visual": punto_entrada_desc,
                 "zonas_calientes": desc_zonas_calientes,

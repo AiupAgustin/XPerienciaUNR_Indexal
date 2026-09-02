@@ -124,15 +124,14 @@ def ejec_iluminacion_y_punctum(imagen_path: str, categoria_pieza: str = "general
     if isinstance(res_atencion, dict) and res_atencion.get("status") == "success" and "resultado" in res_atencion:
         resultado_atencion = res_atencion["resultado"]
         desc_zonas = resultado_atencion.get("descripcion_textual_zonas", {})
-        raw_heatmap = resultado_atencion.get("path_imagen_overlay")
+        raw_heatmap = resultado_atencion.get("path_imagen_overlay", "")
         
-        # Formateo limpio como ruta absoluta o relativa simple (NO uses .as_uri())
-        if raw_heatmap:
-            p = Path(raw_heatmap).resolve()
-            if p.exists():
-                heatmap_clean = str(p)  # Devuelve 'C:\tu\ruta\a\heatmap.jpg'
-            else:
-                heatmap_clean = str(raw_heatmap).replace("\\", "/")
+        if raw_heatmap and raw_heatmap.startswith("data:image"):
+            heatmap_clean = raw_heatmap
+        elif raw_heatmap and Path(raw_heatmap).exists():
+            heatmap_clean = str(Path(raw_heatmap).resolve())
+        elif raw_heatmap:
+            heatmap_clean = str(raw_heatmap).replace("\\", "/")
         else:
             heatmap_clean = "Mapa de calor no generado"
 
