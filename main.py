@@ -14,7 +14,8 @@ from core.reportes.generador_html import renderizar_reporte_html
 from core.reportes.generador_pdf import generar_reporte_pdf
 from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_ID, MAPAS_POR_CATEGORIA
 from core.categorias.cat0_analisis_semiotico import MAPA_CHECKBOXES_CAT0
-from seguridad import verificar_contenido_seguro
+from servicios.seguridad import verificar_contenido_seguro
+from servicios.notificaciones import enviar_correo_feedback
 
 # Ruta absoluta garantizada a assets/imagenes
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -4035,6 +4036,14 @@ def render_reportes():
     if "reportes_sesion" not in st.session_state:
         st.session_state["reportes_sesion"] = []
 
+    # Chequeo de estado de feedback
+    if "feedback_status" not in st.session_state:
+        st.session_state["feedback_status"] = None
+    if "feedback_error_msg" not in st.session_state:
+        st.session_state["feedback_error_msg"] = ""
+    if "fb_event_id" not in st.session_state:
+        st.session_state["fb_event_id"] = 0
+
     # 2. Renderizado del reporte con Jinja2 usando el Master JSON real
     ultimo_json = st.session_state.get("ultimo_reporte_json")
     
@@ -4122,6 +4131,17 @@ def render_reportes():
             opacity: 0 !important;
             pointer-events: none !important;
             overflow: hidden !important;
+        }
+
+        /* Oculto fuera de pantalla pero activo para que React reciba eventos */
+        div[data-testid="stTextInput"], div[data-testid="stElementContainer"]:has(div[data-testid="stTextInput"]) {
+            position: fixed !important;
+            top: -9000px !important;
+            left: -9000px !important;
+            opacity: 0 !important;
+            height: 1px !important;
+            width: 1px !important;
+            pointer-events: none !important;
         }
         </style>
         """,
@@ -4281,6 +4301,9 @@ def render_reportes():
             print(f"Error generando PDF para descarga: {e}")
             pdf_generado_exitosamente = False
 
+    modal_fb_ok = "active" if st.session_state.get("feedback_status") == "ok" else ""
+    modal_fb_err = "active" if st.session_state.get("feedback_status") == "error" else ""
+    
     reportes_html = f"""
     <!DOCTYPE html>
     <html>
@@ -5137,7 +5160,7 @@ def render_reportes():
         </div>
 
         <!-- OVERLAY MODAL FEEDBACK ENVIADO -->
-        <div class="modal-overlay" id="modalFeedbackOk">
+        <div class="modal-overlay {modal_fb_ok}" id="modalFeedbackOk">
             <div class="popup-card success">
                 <button class="popup-close-btn" id="btnCloseFeedback">
                     <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
@@ -5148,6 +5171,22 @@ def render_reportes():
                 <h4 class="popup-title">¡Gracias por tu comentario!</h4>
                 <p class="popup-desc">
                     Tu aporte nos ayuda a mejorar Indexal. Si dejaste tu email, te responderemos a la brevedad.
+                </p>
+            </div>
+        </div>
+
+        <!-- OVERLAY MODAL ERROR FEEDBACK -->
+        <div class="modal-overlay {modal_fb_err}" id="modalFeedbackError">
+            <div class="popup-card error">
+                <button class="popup-close-btn" id="btnCloseFeedbackErr">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <div class="popup-icon-circle error">
+                    <svg viewBox="0 0 24 24"><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                </div>
+                <h4 class="popup-title">No se pudo enviar</h4>
+                <p class="popup-desc">
+                    Ocurrió un error al enviar tu comentario. Intentalo de nuevo.
                 </p>
             </div>
         </div>
@@ -5179,11 +5218,13 @@ def render_reportes():
             const modalExito = document.getElementById('modalExito');
             const modalError = document.getElementById('modalError');
             const modalFeedbackOk = document.getElementById('modalFeedbackOk');
+            const modalFeedbackError = document.getElementById('modalFeedbackError');
 
             function cerrarModales() {{
                 if (modalExito) modalExito.classList.remove('active');
                 if (modalError) modalError.classList.remove('active');
                 if (modalFeedbackOk) modalFeedbackOk.classList.remove('active');
+                if (modalFeedbackError) modalFeedbackError.classList.remove('active');
             }}
 
             const btnCerrarOk = document.getElementById('btnCloseExito');
@@ -5194,6 +5235,23 @@ def render_reportes():
 
             const btnCerrarFeed = document.getElementById('btnCloseFeedback');
             if (btnCerrarFeed) btnCerrarFeed.addEventListener('click', cerrarModales);
+
+            const btnCerrarFeedErr = document.getElementById('btnCloseFeedbackErr');
+            if (btnCerrarFeedErr) btnCerrarFeedErr.addEventListener('click', cerrarModales);
+            
+            // Leemos el estado y el ID de evento inyectados desde Python
+            const fbStatus = "{st.session_state.get('feedback_status', '')}";
+            const fbEventId = "{st.session_state.get('fb_event_id', 0)}";
+
+            if (fbEventId !== "0") {{
+                if (fbStatus === "ok" && modalFeedbackOk) {{
+                    cerrarModales();
+                    abrirModalPosicionado(modalFeedbackOk);
+                }} else if (fbStatus === "error" && modalFeedbackError) {{
+                    cerrarModales();
+                    abrirModalPosicionado(modalFeedbackError);
+                }}
+            }}
 
             const modalPriv = document.getElementById('modalPoliticaPrivacidad');
             if (modalPriv && modalPriv.classList.contains('active')) {{
@@ -5254,11 +5312,60 @@ def render_reportes():
             }}
 
             document.getElementById('btnEnviarComentario').addEventListener('click', function() {{
-                const comment = document.getElementById('txtComentario').value;
-                if (comment.trim().length > 0) {{
-                    document.getElementById('txtComentario').value = '';
-                    document.getElementById('txtEmailFeedback').value = '';
-                    abrirModalPosicionado(modalFeedbackOk);
+                const comment = document.getElementById('txtComentario').value.trim();
+                const email = document.getElementById('txtEmailFeedback').value.trim() || 'No especificado';
+                const btn = document.getElementById('btnEnviarComentario');
+                
+                if (!comment) {{
+                    document.getElementById('txtComentario').focus();
+                    return;
+                }}
+
+                cerrarModales();
+                btn.disabled = true;
+                btn.textContent = 'Enviando...';
+
+                try {{
+                    const pDoc = window.parent.document;
+                    const win = pDoc.defaultView || window.parent;
+                    
+                    // Buscamos el input por su contenedor con el key exacto o por cualquier input en el DOM padre
+                    let inputPayload = pDoc.querySelector('div[data-testid="stTextInput"] input');
+                    if (!inputPayload) {{
+                        const allInputs = pDoc.querySelectorAll('input');
+                        if (allInputs.length > 0) {{
+                            inputPayload = allInputs[allInputs.length - 1];
+                        }}
+                    }}
+
+                    if (inputPayload) {{
+                        const payloadObj = {{ c: comment, e: email }};
+                        const encodedData = encodeURIComponent(JSON.stringify(payloadObj));
+                        
+                        const setter = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value').set;
+                        setter.call(inputPayload, encodedData);
+                        
+                        if (inputPayload._valueTracker) {{
+                            inputPayload._valueTracker.setValue('__reset__' + Date.now());
+                        }}
+
+                        inputPayload.dispatchEvent(new win.Event('input', {{ bubbles: true }}));
+                        inputPayload.dispatchEvent(new win.Event('change', {{ bubbles: true }}));
+                        inputPayload.dispatchEvent(new win.KeyboardEvent('keydown', {{ key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }}));
+
+                        // Limpiamos los campos y restauramos el botón para permitir envíos sucesivos
+                        document.getElementById('txtComentario').value = '';
+                        document.getElementById('txtEmailFeedback').value = '';
+                        btn.disabled = false;
+                        btn.textContent = 'Enviar comentario';
+                    }} else {{
+                        throw new Error("Elemento input puente no encontrado");
+                    }}
+                }} catch (err) {{
+                    console.error(err);
+                    btn.disabled = false;
+                    btn.textContent = 'Enviar comentario';
+                    abrirModalPosicionado(modalFeedbackError);
                 }}
             }});
 
@@ -5342,6 +5449,10 @@ def render_reportes():
 
     components.html(reportes_html, height=component_height, scrolling=False)
 
+    # Limpiamos el estado consumido para futuros envíos
+    if st.session_state.get("feedback_status") is not None:
+        st.session_state["feedback_status"] = None
+
     # 1. Download Button invisible para el botón principal "Exportar a PDF"
     st.download_button(
         label="dl_main_pdf",
@@ -5372,7 +5483,48 @@ def render_reportes():
             key=f"btn_dl_history_{rep['id']}"
         )
 
-    # 3. Botones de navegación interna y modales (5 botones)
+    # Variable de conteo para forzar un reset limpio del widget en cada envío
+    if "fb_input_counter" not in st.session_state:
+        st.session_state["fb_input_counter"] = 0
+
+    def procesar_envio_feedback():
+        input_key = f"fb_bridge_input_{st.session_state['fb_input_counter']}"
+        raw = st.session_state.get(input_key, "")
+        if raw:
+            import json
+            import urllib.parse
+            try:
+                decoded_str = urllib.parse.unquote(raw)
+                data = json.loads(decoded_str)
+                comentario = data.get("c", "")
+                contacto = data.get("e", "No especificado")
+                if comentario:
+                    from servicios.notificaciones import enviar_correo_feedback
+                    ok, msg = enviar_correo_feedback(
+                        mensaje=comentario,
+                        contacto=contacto,
+                        categoria=f"Reporte ({categoria_txt})"
+                    )
+                    st.session_state["feedback_status"] = "ok" if ok else "error"
+                    st.session_state["feedback_error_msg"] = msg if not ok else ""
+                    # Marcamos un nuevo evento único
+                    st.session_state["fb_event_id"] += 1
+            except Exception as ex:
+                st.session_state["feedback_status"] = "error"
+                st.session_state["feedback_error_msg"] = str(ex)
+                st.session_state["fb_event_id"] += 1
+
+        st.session_state["fb_input_counter"] += 1
+
+    # Input invisible con key dinámica para evitar bloqueos en envíos sucesivos
+    st.text_input(
+        "payload_bridge",
+        value="",
+        key=f"fb_bridge_input_{st.session_state['fb_input_counter']}",
+        on_change=procesar_envio_feedback
+    )
+    
+    # Botones de navegación interna y modales (5 botones)
     cols = st.columns(5)
     with cols[0]:
         if st.button("\u200b", key="btn_hidden_rep_home"):
