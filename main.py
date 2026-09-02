@@ -17,7 +17,7 @@ from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_I
 from core.categorias.cat0_analisis_semiotico import MAPA_CHECKBOXES_CAT0
 from servicios.seguridad import verificar_contenido_seguro
 from servicios.notificaciones import enviar_correo_feedback
-from servicios.database import subir_imagen_galeria, guardar_analisis_en_galeria, obtener_items_galeria
+from servicios.database import subir_imagen_galeria, guardar_analisis_en_galeria, obtener_items_galeria, registrar_analisis_galeria
 
 
 # Ruta absoluta garantizada a assets/imagenes
@@ -355,94 +355,6 @@ def cargar_galeria_historica():
         )
 
     return galeria
-
-# -----------------------------------------------------------------
-# FUNCIÓN AUXILIAR: Registrar Análisis en Galería
-# -----------------------------------------------------------------
-
-def registrar_analisis_galeria(
-    imagen_path,
-    tipo_analisis,
-    modulos_seleccionados,
-    descripcion="Análisis visual asistido por IA",
-    master_json=None,
-):
-    try:
-        # 1. Mapeo de Categoría
-        mapa_nombres = {
-            "semiotico": "Semiótico",
-            "ui_ux": "UI / UX",
-            "packaging": "Packaging",
-            "tipografia": "Tipografía",
-            "logotipo": "Logotipo",
-            "afiche": "Afiches",
-            "afiches": "Afiches",
-        }
-        categoria_display = mapa_nombres.get(
-            str(tipo_analisis).lower(), "Semiótico"
-        )
-
-        # 2. Mapeo idéntico al de Reportes para las Letras (A-F)
-        MAPA_LETRAS = {
-            "composicion_visual": ("A", "Composición visual"),
-            "paleta_cromatica": ("B", "Paleta cromática"),
-            "iluminacion": ("C", "Iluminación"),
-            "semiotica_imagen": ("D", "Semiótica de la imagen"),
-            "retorica_visual": ("E", "Retórica visual"),
-            "contexto_denotacion": ("F", "Contexto y denotación"),
-        }
-
-        modulos_base_sel = [m for m in modulos_seleccionados if m in MAPA_LETRAS]
-        total_modulos_posibles = len(MAPA_LETRAS)
-
-        tiene_wcag = "transversal_wcag" in modulos_seleccionados
-        tiene_hist = "transversal_historicas" in modulos_seleccionados
-
-        if len(modulos_base_sel) == total_modulos_posibles:
-            modulo_txt = "Análisis completo · 6 módulos"
-        elif len(modulos_base_sel) == 1:
-            letra, _ = MAPA_LETRAS[modulos_base_sel[0]]
-            modulo_txt = f"MÓDULO {letra}"
-        elif len(modulos_base_sel) > 1:
-            letras_activas = sorted([MAPA_LETRAS[m][0] for m in modulos_base_sel])
-            modulo_txt = f"MÓDULOS {', '.join(letras_activas)}"
-        elif tiene_wcag and tiene_hist:
-            modulo_txt = "Módulos transversales · WCAG e Historia"
-        elif tiene_wcag:
-            modulo_txt = "Módulo Accesibilidad · WCAG 2.1"
-        elif tiene_hist:
-            modulo_txt = "Módulo Referencias históricas"
-        else:
-            modulo_txt = "Diagnóstico visual"
-
-        # 3. Leer archivo y subirlo a Supabase Storage
-        nombre_archivo = os.path.basename(imagen_path)
-        with open(imagen_path, "rb") as f:
-            contenido_bytes = f.read()
-
-        imagen_url = subir_imagen_galeria(nombre_archivo, contenido_bytes)
-
-        # 4. Estructurar el JSON completo de la tarjeta
-        tarjeta_data = {
-            "categoria": categoria_display,
-            "filtro_key": str(tipo_analisis).lower() if tipo_analisis else "semiotico",
-            "descripcion": descripcion,
-            "modulo": modulo_txt,
-            "master_json": master_json or {}
-        }
-
-        # 5. Persistir en la tabla galeria de PostgreSQL
-        guardar_analisis_en_galeria(
-            titulo=nombre_archivo,
-            categoria=categoria_display,
-            imagen_url=imagen_url,
-            master_json=tarjeta_data
-        )
-
-        return True
-    except Exception as e:
-        print(f"Error al registrar en Supabase: {e}")
-        return False
 
 # -----------------------------------------------------------------
 # 1. INICIALIZACIÓN SEGURA DE ESTADO (Evita AttributeError)
@@ -3913,9 +3825,14 @@ def render_analizar():
                 5: "Análisis UI/UX"
             }
 
+            # Obtenemos el nombre original subido por el usuario
+            nombre_real_archivo = st.session_state.get("nombre_imagen", "Pieza analizada")
+
             master_json = {
                 "metadata": {
                     "imagen_path": ruta_completa_imagen,
+                    "nombre_pieza": nombre_real_archivo,
+                    "nombre_archivo": nombre_real_archivo,
                     "categoria_id": cat_id,
                     "titulo_reporte": titulos_por_categoria.get(cat_id, "Auditoría de Diseño Visual"),
                     "total_bloques": len(st.session_state["bloques_temporales"])
@@ -3931,7 +3848,8 @@ def render_analizar():
                 tipo_analisis=cat_str,
                 modulos_seleccionados=modulos_a_ejecutar,
                 descripcion=resumen_desc,
-                master_json=master_json
+                master_json=master_json,
+                nombre_personalizado=nombre_real_archivo  # Le pasamos el nombre real
             )
 
             nombre_img_original = st.session_state.get("nombre_imagen", "Analisis")
