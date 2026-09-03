@@ -5,3 +5,5 @@ libpangocairo-1.0-0
 libcairo2
 libgdk-pixbuf-2.0-0
 shared-mime-info
+libglib2.0-0
+gir1.2-pango-1.0
