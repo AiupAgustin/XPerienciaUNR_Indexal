@@ -1745,6 +1745,20 @@ def render_analizar():
         </div>
         """
 
+    # Generamos los event listeners de JavaScript de forma previa y limpia
+    js_modulos_listeners = ""
+    for i in range(len(lista_modulos_activa)):
+        idx_boton = 11 + i
+        js_modulos_listeners += f"""
+                const el_{i} = document.getElementById('cardMod_{i}');
+                if (el_{i}) {{
+                    el_{i}.addEventListener('click', function() {{
+                        const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                        if (allButtons.length > {idx_boton}) allButtons[{idx_boton}].click();
+                    }});
+                }}
+        """
+    
     analizar_html = f"""
     <!DOCTYPE html>
     <html>
@@ -3360,15 +3374,7 @@ def render_analizar():
                     }});
                 }}
 
-                { "".join([f"""
-                const el_{i} = document.getElementById('cardMod_{i}');
-                if (el_{i}) {{
-                    el_{i}.addEventListener('click', function() {{
-                        const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                        if (allButtons.length > {11 + i}) allButtons[{11 + i}].click();
-                    }});
-                }}
-                """ for i in range(len(lista_modulos_activa))]) }
+                {js_modulos_listeners}
 
                 const elWcag = document.getElementById('rowTransversalWcag');
                 if (elWcag) {{
