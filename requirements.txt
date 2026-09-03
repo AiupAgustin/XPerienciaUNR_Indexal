@@ -8,3 +8,5 @@ jinja2
 weasyprint
 toml
 supabase
+transformers
+torch --extra-index-url https://download.pytorch.org/whl/cpu
