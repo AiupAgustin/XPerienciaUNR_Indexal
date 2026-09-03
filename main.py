@@ -1653,7 +1653,6 @@ def render_analizar():
     icon_settings = cargar_svg_base64("assets/iconos/settings.svg")
     icon_search = cargar_svg_base64("assets/iconos/search.svg")
     icon_frame = cargar_svg_base64("assets/iconos/frame.svg")
-
     icon_palette = cargar_svg_base64("assets/iconos/palette.svg")
     icon_touch = cargar_svg_base64("assets/iconos/touch_app.svg")
     icon_inbox = cargar_svg_base64("assets/iconos/all_inbox.svg")
