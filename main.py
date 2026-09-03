@@ -4231,6 +4231,31 @@ def render_reportes():
 
     modal_fb_ok = "active" if st.session_state.get("feedback_status") == "ok" else ""
     modal_fb_err = "active" if st.session_state.get("feedback_status") == "error" else ""
+
+    # Generamos los listeners de descarga de la sesión antes del HTML principal
+    js_downloads_listeners = ""
+    for i, rep in enumerate(lista_reportes):
+        idx_dl = 1 + i
+        nom_rep_escapado = rep["archivo"].replace("'", "\\'")
+        js_downloads_listeners += f"""
+            const btnDown_{i} = document.getElementById('btnDownloadRow_{i}');
+            if (btnDown_{i}) {{
+                btnDown_{i}.addEventListener('click', function() {{
+                    cerrarModales();
+                    const dlBtns = parentDoc.querySelectorAll('div.stDownloadButton button');
+                    if (dlBtns.length > {idx_dl}) {{
+                        dlBtns[{idx_dl}].click();
+                        
+                        const nameElem = document.getElementById('popupSuccessFileName');
+                        if (nameElem) nameElem.textContent = '{nom_rep_escapado}';
+                        
+                        abrirModalPosicionado(modalExito);
+                    }} else {{
+                        abrirModalPosicionado(modalError);
+                    }}
+                }});
+            }}
+        """
     
     reportes_html = f"""
     <!DOCTYPE html>
@@ -5298,25 +5323,7 @@ def render_reportes():
             }});
 
             // Descargas de las filas de la sesión con popup dinámico
-            { "".join([f"""
-            const btnDown_{i} = document.getElementById('btnDownloadRow_{i}');
-            if (btnDown_{i}) {{{{
-                btnDown_{i}.addEventListener('click', function() {{{{
-                    cerrarModales();
-                    const dlBtns = parentDoc.querySelectorAll('div.stDownloadButton button');
-                    if (dlBtns.length > {1 + i}) {{{{
-                        dlBtns[{1 + i}].click();
-                        
-                        const nameElem = document.getElementById('popupSuccessFileName');
-                        if (nameElem) nameElem.textContent = '{rep["archivo"]}';
-                        
-                        abrirModalPosicionado(modalExito);
-                    }}}} else {{{{
-                        abrirModalPosicionado(modalError);
-                    }}}}
-                }}}});
-            }}}}
-            """ for i, rep in enumerate(lista_reportes)]) }
+            {js_downloads_listeners}
         </script>
     </body>
     </html>
