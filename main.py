@@ -2189,6 +2189,47 @@ def render_analizar():
                 pointer-events: none;
             }}
 
+            /* Estilos para elementos bloqueados con aviso 'Próximamente' */
+            .card-proximamente {{
+                background-color: #F4F4F2 !important;
+                border-color: #E5E7EB !important;
+                cursor: not-allowed !important;
+                opacity: 0.65;
+            }}
+            .card-proximamente:hover {{
+                border-color: #E5E7EB !important;
+            }}
+            .card-proximamente .card-title,
+            .card-proximamente .card-desc,
+            .card-proximamente .transversal-text {{
+                color: #8C9093 !important;
+            }}
+            .card-proximamente .card-icon-img {{
+                filter: brightness(0) opacity(0.35) !important;
+            }}
+            .badge-proximamente {{
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                color: #5E6366;
+                background-color: #E5E7EB;
+                padding: 2px 7px;
+                border-radius: 4px;
+                text-transform: uppercase;
+                margin-left: auto;
+                user-select: none;
+            }}
+            .row-proximamente {{
+                cursor: not-allowed !important;
+                opacity: 0.55;
+            }}
+            .row-proximamente .custom-checkbox {{
+                background-color: #E5E7EB !important;
+                border-color: #C4C6CF !important;
+                cursor: not-allowed !important;
+            }}
+
             .card-icon-badge {{
                 width: 36px;
                 height: 36px;
@@ -2918,9 +2959,12 @@ def render_analizar():
                             </div>
                         </div>
 
-                        <div class="analysis-card {sel_ui_ux} {clase_disabled_p2}" id="cardUiUx">
-                            <div class="card-icon-badge">
-                                <img src="{icon_touch}" class="card-icon-img" alt="UX/UI">
+                        <div class="analysis-card card-proximamente {clase_disabled_p2}" id="cardUiUx">
+                            <div style="display: flex; width: 100%; align-items: center; justify-content: space-between;">
+                                <div class="card-icon-badge">
+                                    <img src="{icon_touch}" class="card-icon-img" alt="UX/UI">
+                                </div>
+                                <span class="badge-proximamente">Próximamente</span>
                             </div>
                             <div class="card-texts-wrap">
                                 <h3 class="card-title">UX/UI</h3>
@@ -2928,9 +2972,12 @@ def render_analizar():
                             </div>
                         </div>
 
-                        <div class="analysis-card {sel_packaging} {clase_disabled_p2}" id="cardPackaging">
-                            <div class="card-icon-badge">
-                                <img src="{icon_inbox}" class="card-icon-img" alt="Packaging">
+                        <div class="analysis-card card-proximamente {clase_disabled_p2}" id="cardPackaging">
+                            <div style="display: flex; width: 100%; align-items: center; justify-content: space-between;">
+                                <div class="card-icon-badge">
+                                    <img src="{icon_inbox}" class="card-icon-img" alt="Packaging">
+                                </div>
+                                <span class="badge-proximamente">Próximamente</span>
                             </div>
                             <div class="card-texts-wrap">
                                 <h3 class="card-title">Packaging</h3>
@@ -2938,9 +2985,12 @@ def render_analizar():
                             </div>
                         </div>
 
-                        <div class="analysis-card {sel_tipografia} {clase_disabled_p2}" id="cardTipografia">
-                            <div class="card-icon-badge">
-                                <img src="{icon_font}" class="card-icon-img" alt="Tipografía">
+                        <div class="analysis-card card-proximamente {clase_disabled_p2}" id="cardTipografia">
+                            <div style="display: flex; width: 100%; align-items: center; justify-content: space-between;">
+                                <div class="card-icon-badge">
+                                    <img src="{icon_font}" class="card-icon-img" alt="Tipografía">
+                                </div>
+                                <span class="badge-proximamente">Próximamente</span>
                             </div>
                             <div class="card-texts-wrap">
                                 <h3 class="card-title">Tipografía</h3>
@@ -2948,9 +2998,12 @@ def render_analizar():
                             </div>
                         </div>
 
-                        <div class="analysis-card {sel_logotipo} {clase_disabled_p2}" id="cardLogotipo">
-                            <div class="card-icon-badge">
-                                <img src="{icon_watermark}" class="card-icon-img" alt="Logotipo">
+                        <div class="analysis-card card-proximamente {clase_disabled_p2}" id="cardLogotipo">
+                            <div style="display: flex; width: 100%; align-items: center; justify-content: space-between;">
+                                <div class="card-icon-badge">
+                                    <img src="{icon_watermark}" class="card-icon-img" alt="Logotipo">
+                                </div>
+                                <span class="badge-proximamente">Próximamente</span>
                             </div>
                             <div class="card-texts-wrap">
                                 <h3 class="card-title">Logotipo</h3>
@@ -2958,9 +3011,12 @@ def render_analizar():
                             </div>
                         </div>
 
-                        <div class="analysis-card {sel_afiche} {clase_disabled_p2}" id="cardAfiche">
-                            <div class="card-icon-badge">
-                                <img src="{icon_crop}" class="card-icon-img" alt="Afiche">
+                        <div class="analysis-card card-proximamente {clase_disabled_p2}" id="cardAfiche">
+                            <div style="display: flex; width: 100%; align-items: center; justify-content: space-between;">
+                                <div class="card-icon-badge">
+                                    <img src="{icon_crop}" class="card-icon-img" alt="Afiche">
+                                </div>
+                                <span class="badge-proximamente">Próximamente</span>
                             </div>
                             <div class="card-texts-wrap">
                                 <h3 class="card-title">Afiche</h3>
@@ -2985,19 +3041,21 @@ def render_analizar():
                     <div class="transversal-box {clase_disabled_p3}">
                         <h4 class="transversal-title">Módulos transversales — activos en todas las categorías</h4>
                         
-                        <div class="transversal-row" id="rowTransversalWcag">
-                            <div class="custom-checkbox {wcag_checked}">
+                        <div class="transversal-row row-proximamente" id="rowTransversalWcag">
+                            <div class="custom-checkbox">
                                 <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                             </div>
-                            <img src="{icon_access}" class="transversal-icon" alt="Accesibilidad">
+                            <img src="{icon_access}" class="transversal-icon" alt="Accesibilidad" style="filter: brightness(0) opacity(0.35);">
                             <span class="transversal-text">Detector de accesibilidad WCAG 2.1</span>
+                            <span class="badge-proximamente">Próximamente</span>
                         </div>
 
-                        <div class="transversal-row" id="rowTransversalHistoricas">
-                            <div class="custom-checkbox {hist_checked}">
+                        <div class="transversal-row row-proximamente" id="rowTransversalHistoricas">
+                            <div class="custom-checkbox">
                                 <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                             </div>
                             <span class="transversal-text">Referencias históricas</span>
+                            <span class="badge-proximamente">Próximamente</span>
                         </div>
                     </div>
 
@@ -3337,30 +3395,13 @@ def render_analizar():
 
             // Categorías (Paso 2)
             if (paso2Permitido) {{
-                document.getElementById('cardSemiotico').addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 3) allButtons[3].click();
-                }});
-                document.getElementById('cardUiUx').addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 4) allButtons[4].click();
-                }});
-                document.getElementById('cardPackaging').addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 5) allButtons[5].click();
-                }});
-                document.getElementById('cardTipografia').addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 6) allButtons[6].click();
-                }});
-                document.getElementById('cardLogotipo').addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 7) allButtons[7].click();
-                }});
-                document.getElementById('cardAfiche').addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 8) allButtons[8].click();
-                }});
+                const elSem = document.getElementById('cardSemiotico');
+                if (elSem) {{
+                    elSem.addEventListener('click', function() {{
+                        const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                        if (allButtons.length > 3) allButtons[3].click();
+                    }});
+                }}
             }}
 
             // Módulos (Paso 3)
@@ -3375,21 +3416,6 @@ def render_analizar():
 
                 {js_modulos_listeners}
 
-                const elWcag = document.getElementById('rowTransversalWcag');
-                if (elWcag) {{
-                    elWcag.addEventListener('click', function() {{
-                        const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                        if (allButtons.length > {11 + len(lista_modulos_activa)}) allButtons[{11 + len(lista_modulos_activa)}].click();
-                    }});
-                }}
-
-                const elHist = document.getElementById('rowTransversalHistoricas');
-                if (elHist) {{
-                    elHist.addEventListener('click', function() {{
-                        const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                        if (allButtons.length > {12 + len(lista_modulos_activa)}) allButtons[{12 + len(lista_modulos_activa)}].click();
-                    }});
-                }}
             }}
 
             // Función global escuchadora para marcar tildes reales desde Python
