@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from core.categorias.config import imread_unicode
+from servicios.config import imread_unicode
 
 def analizar_secuencia_narrativa(imagen_path: str) -> dict:
     """

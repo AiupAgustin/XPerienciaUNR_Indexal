@@ -4,7 +4,7 @@ import os
 import base64
 import unicodedata
 from pathlib import Path
-from core.categorias.config import imread_unicode
+from servicios.config import imread_unicode
 
 def calcular_salience_map(imagen_path: str):
     """Calcula el mapa de saliencia visual usando el algoritmo de OpenCV."""

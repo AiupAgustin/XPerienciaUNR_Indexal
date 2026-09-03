@@ -1,6 +1,6 @@
 from pathlib import Path
 import cv2
-from core.categorias.config import (consultar_minicpm_v, imread_unicode)
+from servicios.config import (consultar_minicpm_v, imread_unicode)
 from core.dimensiones.dimension_pragmatica.atencion_predictiva import analizar_atencion_predictiva
 from core.dimensiones.dimension_sintactica.reticular_grillas import generar_grilla_muller_brockmann
 from core.dimensiones.dimension_sintactica.cromo_semiotica import obtener_paleta_cromatica

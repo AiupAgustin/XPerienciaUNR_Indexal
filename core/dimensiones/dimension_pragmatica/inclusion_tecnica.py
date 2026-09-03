@@ -1,5 +1,5 @@
 
-from core.categorias.config import consultar_minicpm_v
+from servicios.config import consultar_minicpm_v
 # Reutilizamos la función que ya tenemos en la dimensión sintáctica
 from core.dimensiones.dimension_sintactica.cromo_semiotica import obtener_paleta_cromatica
 

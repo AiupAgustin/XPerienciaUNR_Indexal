@@ -1,5 +1,5 @@
 
-from core.categorias.config import consultar_minicpm_v
+from servicios.config import consultar_minicpm_v
 
 # Diccionario de Prompts Especializados por Categoría para Auditoría de Sesgos
 PROMPTS_SESGOS = {

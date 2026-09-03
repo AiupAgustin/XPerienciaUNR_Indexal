@@ -1,6 +1,6 @@
 
 
-from core.categorias.config import consultar_minicpm_v
+from servicios.config import consultar_minicpm_v
 
 # Diccionario de Prompts Especializados por Categoría (Enfocados puramente en lo denotativo)
 PROMPTS_ICONICOS = {

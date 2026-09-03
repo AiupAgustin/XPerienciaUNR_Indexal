@@ -1,0 +1,10 @@
+
+# este archivo ya no sirve pero lo guardo por las dudas
+runpod>=1.7.0
+transformers>=4.44.2
+accelerate>=0.33.0
+pillow
+sentencepiece
+protobuf
+decord
+torchvision

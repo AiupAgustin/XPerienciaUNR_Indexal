@@ -1,7 +1,7 @@
 
 import cv2
 import numpy as np
-from core.categorias.config import imread_unicode
+from servicios.config import imread_unicode
 
 
 def detectar_lineas_y_angulos(imagen_path):

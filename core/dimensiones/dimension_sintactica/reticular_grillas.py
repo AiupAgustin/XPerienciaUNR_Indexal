@@ -1,7 +1,7 @@
 
 import cv2
 import numpy as np
-from core.categorias.config import imread_unicode
+from servicios.config import imread_unicode
 
 def generar_grilla_tercios(imagen_path, destino_path, color_bgr=(0, 255, 0), grosor=2):
     """

@@ -1,4 +1,4 @@
-from core.categorias.config import consultar_minicpm_v
+from servicios.config import consultar_minicpm_v
 
 PROMPTS_TIPOGRAFICA = {
     "afiche": "Analizá el contraste visual y la legibilidad entre el titular y el texto secundario de este afiche.",

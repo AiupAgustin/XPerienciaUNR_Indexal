@@ -1,4 +1,4 @@
-from core.categorias.config import consultar_minicpm_v
+from servicios.config import consultar_minicpm_v
 
 # Diccionario de Prompts Especializados por Categoría (Enfocados en el mensaje lingüístico de Barthes)
 PROMPTS_BARTHES = {

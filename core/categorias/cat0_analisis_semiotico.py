@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 from pathlib import Path
-from core.categorias.config import (consultar_minicpm_v, imread_unicode)
+from servicios.config import (consultar_minicpm_v, imread_unicode)
 from core.dimensiones.dimension_sintactica.eidetica_y_tensiones_kandinsky import calcular_tension_kandinsky
 from core.dimensiones.dimension_sintactica.cromo_semiotica import (
     obtener_paleta_cromatica,
