@@ -38,3 +38,6 @@ assets/temp_*.pdf
 output/
 data/imagenes_analizadas/*
 !data/imagenes_analizadas/.gitkeep
+
+# Workspace
+*.code-workspace

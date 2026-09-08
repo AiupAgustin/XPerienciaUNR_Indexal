@@ -1,4 +1,5 @@
 
+--extra-index-url https://download.pytorch.org/whl/cpu
 streamlit
 requests==2.34.2
 Pillow==10.3.0
@@ -9,4 +10,5 @@ weasyprint
 toml
 supabase
 transformers
-torch --extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
