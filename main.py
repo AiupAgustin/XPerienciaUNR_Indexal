@@ -29,6 +29,163 @@ CARPETA_IMAGENES = os.path.join(BASE_DIR, "assets", "imagenes")
 # FUNCIÓN AUXILIAR GLOBAL: Para popup de politica de privacidad
 # -----------------------------------------------------------------
 
+def obtener_modal_terminos_html(logo_bienvenida_b64: str, activo: bool = False) -> str:
+    clase_activa = "active" if activo else ""
+    return f"""
+    <style>
+        /* ESTILOS UNIFICADOS DEL MODAL DE TÉRMINOS Y CONDICIONES */
+        #modalTerminosCondiciones.modal-overlay {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(17, 17, 17, 0.45);
+            backdrop-filter: blur(3px);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            z-index: 999999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }}
+
+        #modalTerminosCondiciones.modal-overlay.active {{
+            opacity: 1;
+            visibility: visible;
+        }}
+
+        #modalTerminosCondiciones .welcome-card {{
+            position: relative;
+            width: 490px;
+            max-width: 90%;
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 28px 30px 24px 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+            transform: scale(0.95);
+            transition: transform 0.25s ease;
+        }}
+
+        #modalTerminosCondiciones.modal-overlay.active .welcome-card {{
+            transform: scale(1);
+        }}
+
+        #modalTerminosCondiciones .welcome-logo-badge {{
+            width: 52px;
+            height: 52px;
+            min-width: 52px;
+            min-height: 52px;
+            border-radius: 12px;
+            background-color: #0057FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }}
+
+        #modalTerminosCondiciones .welcome-logo-img {{
+            width: 28px;
+            height: 28px;
+            display: block;
+        }}
+
+        #modalTerminosCondiciones .welcome-badge-text {{
+            color: #444748;
+            font-family: 'Space Grotesk', sans-serif !important;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            margin: 0 0 6px 0;
+        }}
+
+        #modalTerminosCondiciones .welcome-title {{
+            color: #111111;
+            font-family: 'Space Grotesk', sans-serif !important;
+            font-size: 21px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 0 0 14px 0;
+            text-align: center;
+        }}
+
+        #modalTerminosCondiciones .welcome-desc {{
+            font-family: 'Space Grotesk', sans-serif !important;
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: #444748;
+            margin: 0 0 11px 0;
+            font-weight: 400;
+            text-align: left;
+            width: 100%;
+        }}
+
+        #modalTerminosCondiciones .welcome-desc:last-of-type {{
+            margin-bottom: 0;
+        }}
+
+        #modalTerminosCondiciones .success-close-btn {{
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            background: #F3F4F6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.15s ease;
+        }}
+
+        #modalTerminosCondiciones .success-close-btn:hover {{
+            background: #E5E7EB;
+        }}
+
+        #modalTerminosCondiciones .success-close-btn svg {{
+            width: 14px;
+            height: 14px;
+            fill: #444748;
+        }}
+    </style>
+
+    <!-- POPUP DE TÉRMINOS Y CONDICIONES -->
+    <div class="modal-overlay {clase_activa}" id="modalTerminosCondiciones">
+        <div class="welcome-card">
+            <button class="success-close-btn" id="btnCerrarPopupTerminos">
+                <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+            <div class="welcome-logo-badge">
+                <img src="{logo_bienvenida_b64}" class="welcome-logo-img" alt="Indexal">
+            </div>
+            <span class="welcome-badge-text">SEGURIDAD Y DATOS</span>
+            <h3 class="welcome-title">Términos y condiciones</h3>
+            
+            <p class="welcome-desc">
+                Indexal promueve un entorno de acceso abierto y transparente: no recopila datos personales, información de contacto, ni requiere la creación de perfiles de usuario para su operación.
+            </p>
+            <p class="welcome-desc">
+                Las imágenes que subís para ser analizadas se procesan temporalmente en el servidor para extraer sus metadatos y ejecutar los módulos de análisis.
+            </p>
+            <p class="welcome-desc">
+                Almacenamiento cero: las piezas gráficas no se guardan de forma permanente, no se usan para entrenar modelos propios ni se comparten con terceros. Una vez cerrado el reporte, el archivo se elimina del servidor.
+            </p>
+        </div>
+    </div>
+    """
+
+# -----------------------------------------------------------------
+# FUNCIÓN AUXILIAR GLOBAL: Para popup de politica de privacidad
+# -----------------------------------------------------------------
+
 def obtener_modal_privacidad_html(logo_bienvenida_b64: str, activo: bool = False) -> str:
     clase_activa = "active" if activo else ""
     return f"""
@@ -728,11 +885,16 @@ def render_galeria():
     icon_arrow_src = cargar_svg_base64("assets/iconos/vector.svg")
     if "modal_privacidad_activo" not in st.session_state:
         st.session_state["modal_privacidad_activo"] = False
+    if "modal_terminos_activo" not in st.session_state:
+        st.session_state["modal_terminos_activo"] = False
 
     logo_bienvenida = cargar_svg_base64("assets/iconos/logo_popup_bienvenida.svg")
     js_posicionador = obtener_js_posicionamiento_modal()
     modal_privacidad_html = obtener_modal_privacidad_html(
         logo_bienvenida, st.session_state["modal_privacidad_activo"]
+    )
+    modal_terminos_html = obtener_modal_terminos_html(
+        logo_bienvenida, st.session_state["modal_terminos_activo"]
     )
 
     # MOCK DATA CON NOMBRES DE CATEGORÍA CORREGIDOS
@@ -1237,6 +1399,9 @@ def render_galeria():
         <!-- POP UP POLITICA DE PRIVACIDAD -->
         {modal_privacidad_html}
 
+        <!-- POP UP TERMINOS Y CONDICIONES -->
+        {modal_terminos_html}
+        
         <script>
             const parentDoc = window.parent.document;
 
@@ -1247,9 +1412,23 @@ def render_galeria():
                 posicionarModal(modalPriv);
             }}
 
-            // Click en 'Política de privacidad' del footer -> botón invisible 3
+            const modalTerm = document.getElementById('modalTerminosCondiciones');
+            if (modalTerm && modalTerm.classList.contains('active')) {{
+                posicionarModal(modalTerm);
+            }}
+
+            // Links del footer
             const footerLinks = document.querySelectorAll('.footer-link');
+            if (footerLinks.length > 0) {{
+                // Click en 'Términos y condiciones' -> botón invisible 5
+                footerLinks[0].addEventListener('click', function(e) {{
+                    e.stopPropagation();
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    if (allButtons.length > 5) allButtons[5].click();
+                }});
+            }}
             if (footerLinks.length > 1) {{
+                // Click en 'Política de privacidad' -> botón invisible 3
                 footerLinks[1].addEventListener('click', function(e) {{
                     e.stopPropagation();
                     const allButtons = parentDoc.querySelectorAll('div.stButton button');
@@ -1257,12 +1436,21 @@ def render_galeria():
                 }});
             }}
 
-            // Click en la cruz de cierre (X) -> botón invisible 4
+            // Click en la cruz de cierre (X) de Privacidad -> botón invisible 4
             const btnCerrarPriv = document.getElementById('btnCerrarPopupPrivacidad');
             if (btnCerrarPriv) {{
                 btnCerrarPriv.addEventListener('click', function() {{
                     const allButtons = parentDoc.querySelectorAll('div.stButton button');
                     if (allButtons.length > 4) allButtons[4].click();
+                }});
+            }}
+
+            // Click en la cruz de cierre (X) de Términos -> botón invisible 6
+            const btnCerrarTerm = document.getElementById('btnCerrarPopupTerminos');
+            if (btnCerrarTerm) {{
+                btnCerrarTerm.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    if (allButtons.length > 6) allButtons[6].click();
                 }});
             }}
             
@@ -1314,7 +1502,7 @@ def render_galeria():
     """
 
     # Disparadores ocultos de Streamlit (5 botones)
-    columnas_totales = st.columns(5)
+    columnas_totales = st.columns(7)
     with columnas_totales[0]:
         if st.button("\u200b", key="btn_hidden_nav_home"):
             st.session_state["pantalla_actual"] = "home"
@@ -1334,6 +1522,14 @@ def render_galeria():
     with columnas_totales[4]:
         if st.button("\u200b", key="btn_hidden_cerrar_privacidad_galeria"):
             st.session_state["modal_privacidad_activo"] = False
+            st.rerun()
+    with columnas_totales[5]:
+        if st.button("\u200b", key="btn_hidden_abrir_terminos_galeria"):
+            st.session_state["modal_terminos_activo"] = True
+            st.rerun()
+    with columnas_totales[6]:
+        if st.button("\u200b", key="btn_hidden_cerrar_terminos_galeria"):
+            st.session_state["modal_terminos_activo"] = False
             st.rerun()
 
     total_tarjetas = len(INFORMES_MOCK)
@@ -1376,6 +1572,8 @@ def render_analizar():
         st.session_state["motivo_error_seguridad"] = ""
     if "modal_privacidad_activo" not in st.session_state:
         st.session_state["modal_privacidad_activo"] = False
+    if "modal_terminos_activo" not in st.session_state:
+        st.session_state["modal_terminos_activo"] = False
     if "uploader_key_version" not in st.session_state:
         st.session_state["uploader_key_version"] = 0
     if "analisis_en_progreso" not in st.session_state:
@@ -3219,6 +3417,9 @@ def render_analizar():
         <!-- POPUP POLITICA DE PRIVACIDAD -->
         {obtener_modal_privacidad_html(logo_bienvenida, st.session_state["modal_privacidad_activo"])}
 
+        <!-- POPUP TERMINOS Y CONDICIONES -->
+        {obtener_modal_terminos_html(logo_bienvenida, st.session_state["modal_terminos_activo"])}
+
         <script>
             {js_posicionador}
 
@@ -3297,18 +3498,14 @@ def render_analizar():
                 }});
             }}
 
-            // Triggers preparados para los futuros popups
-            const lnkTerminos = document.getElementById('lnkTerminosServicio');
-            if (lnkTerminos) {{
-                lnkTerminos.addEventListener('click', function(e) {{
-                    e.stopPropagation();
-                    console.log("Abrir popup de Términos del servicio");
-                }});
-            }}
-
             const modalPrivacidad = document.getElementById('modalPoliticaPrivacidad');
             if (modalPrivacidad && modalPrivacidad.classList.contains('active')) {{
                 posicionarModal(modalPrivacidad);
+            }}
+
+            const modalTerminos = document.getElementById('modalTerminosCondiciones');
+            if (modalTerminos && modalTerminos.classList.contains('active')) {{
+                posicionarModal(modalTerminos);
             }}
 
             function dispararAperturaPrivacidad(e) {{
@@ -3320,17 +3517,39 @@ def render_analizar():
                 }}
             }}
 
+            function dispararAperturaTerminos(e) {{
+                if (e) e.stopPropagation();
+                const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                const idxAbrirTerminos = {24 + len(lista_modulos_activa)};
+                if (allButtons.length > idxAbrirTerminos) {{
+                    allButtons[idxAbrirTerminos].click();
+                }}
+            }}
+
+            // Link "términos del servicio" dentro de la tarjeta de bienvenida
+            const lnkTerminos = document.getElementById('lnkTerminosServicio');
+            if (lnkTerminos) {{
+                lnkTerminos.addEventListener('click', dispararAperturaTerminos);
+            }}
+
+            // Link "política de privacidad" dentro de la tarjeta de bienvenida
             const lnkPrivacidad = document.getElementById('lnkPoliticaPrivacidad');
             if (lnkPrivacidad) {{
                 lnkPrivacidad.addEventListener('click', dispararAperturaPrivacidad);
             }}
 
-            // Footer link
+            // Links del footer principal
             const footerLinks = document.querySelectorAll('.footer-link');
+            if (footerLinks.length > 0) {{
+                // Términos y condiciones
+                footerLinks[0].addEventListener('click', dispararAperturaTerminos);
+            }}
             if (footerLinks.length > 1) {{
+                // Política de privacidad
                 footerLinks[1].addEventListener('click', dispararAperturaPrivacidad);
             }}
 
+            // Botón cruz (X) para cerrar privacidad
             const btnCerrarPriv = document.getElementById('btnCerrarPopupPrivacidad');
             if (btnCerrarPriv) {{
                 btnCerrarPriv.addEventListener('click', function() {{
@@ -3338,6 +3557,18 @@ def render_analizar():
                     const idxCerrarPriv = {22 + len(lista_modulos_activa)};
                     if (allButtons.length > idxCerrarPriv) {{
                         allButtons[idxCerrarPriv].click();
+                    }}
+                }});
+            }}
+
+            // Botón cruz (X) para cerrar términos
+            const btnCerrarTerm = document.getElementById('btnCerrarPopupTerminos');
+            if (btnCerrarTerm) {{
+                btnCerrarTerm.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxCerrarTerm = {25 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxCerrarTerm) {{
+                        allButtons[idxCerrarTerm].click();
                     }}
                 }});
             }}
@@ -3667,7 +3898,7 @@ def render_analizar():
 
     # Botones ocultos de navegación y estado
     botones_modulos_count = len(lista_modulos_activa)
-    columnas_totales = st.columns(24 + botones_modulos_count)
+    columnas_totales = st.columns(26 + botones_modulos_count)
 
     # 1. Navegación del Menú Lateral (0, 1, 2)
     with columnas_totales[0]:
@@ -3977,6 +4208,18 @@ def render_analizar():
         if st.button("\u200b", key="btn_hidden_cerrar_popup_seguridad"):
             st.session_state["modal_error_seguridad_activo"] = False
             st.rerun()
+
+    # 18. Botón invisible para abrir popup de términos
+    with columnas_totales[idx_transversal + 13]:
+        if st.button("\u200b", key="btn_hidden_abrir_popup_terminos"):
+            st.session_state["modal_terminos_activo"] = True
+            st.rerun()
+
+    # 19. Botón invisible para cerrar popup de términos
+    with columnas_totales[idx_transversal + 14]:
+        if st.button("\u200b", key="btn_hidden_cerrar_popup_terminos"):
+            st.session_state["modal_terminos_activo"] = False
+            st.rerun()
 # -----------------------------------------------------------------
 # PANTALLA 5: REPORTES
 # -----------------------------------------------------------------
@@ -4110,10 +4353,15 @@ def render_reportes():
     js_posicionador = obtener_js_posicionamiento_modal()
     if "modal_privacidad_activo" not in st.session_state:
         st.session_state["modal_privacidad_activo"] = False
+    if "modal_terminos_activo" not in st.session_state:
+        st.session_state["modal_terminos_activo"] = False
 
     logo_bienvenida = cargar_svg_base64("assets/iconos/logo_popup_bienvenida.svg")
     modal_privacidad_html = obtener_modal_privacidad_html(
         logo_bienvenida, st.session_state["modal_privacidad_activo"]
+    )
+    modal_terminos_html = obtener_modal_terminos_html(
+        logo_bienvenida, st.session_state["modal_terminos_activo"]
     )
 
     sidebar_html = obtener_sidebar_html(
@@ -5102,6 +5350,9 @@ def render_reportes():
         <!-- POP UP POLITICAS DE PRIVACIDAD -->
         {modal_privacidad_html}
 
+        <!-- POP UP TERMINOS Y CONDICIONES -->
+        {modal_terminos_html}
+
         <!-- OVERLAY MODAL ÉXITO -->
         <div class="modal-overlay" id="modalExito">
             <div class="popup-card success">
@@ -5236,9 +5487,23 @@ def render_reportes():
                 posicionarModal(modalPriv);
             }}
 
-            // Disparar apertura desde el footer (botón invisible 3)
+            const modalTerm = document.getElementById('modalTerminosCondiciones');
+            if (modalTerm && modalTerm.classList.contains('active')) {{
+                posicionarModal(modalTerm);
+            }}
+
+            // Links del footer
             const footerLinks = document.querySelectorAll('.footer-link');
+            if (footerLinks.length > 0) {{
+                // Click en 'Términos y condiciones' -> botón invisible 5
+                footerLinks[0].addEventListener('click', function(e) {{
+                    e.stopPropagation();
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    if (allButtons.length > 5) allButtons[5].click();
+                }});
+            }}
             if (footerLinks.length > 1) {{
+                // Click en 'Política de privacidad' -> botón invisible 3
                 footerLinks[1].addEventListener('click', function(e) {{
                     e.stopPropagation();
                     const allButtons = parentDoc.querySelectorAll('div.stButton button');
@@ -5246,12 +5511,21 @@ def render_reportes():
                 }});
             }}
 
-            // Disparar cierre con la cruz (X) (botón invisible 4)
+            // Cierre de Privacidad (X) -> botón invisible 4
             const btnCerrarPriv = document.getElementById('btnCerrarPopupPrivacidad');
             if (btnCerrarPriv) {{
                 btnCerrarPriv.addEventListener('click', function() {{
                     const allButtons = parentDoc.querySelectorAll('div.stButton button');
                     if (allButtons.length > 4) allButtons[4].click();
+                }});
+            }}
+
+            // Cierre de Términos (X) -> botón invisible 6
+            const btnCerrarTerm = document.getElementById('btnCerrarPopupTerminos');
+            if (btnCerrarTerm) {{
+                btnCerrarTerm.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    if (allButtons.length > 6) allButtons[6].click();
                 }});
             }}
 
@@ -5485,7 +5759,7 @@ def render_reportes():
     )
     
     # Botones de navegación interna y modales (5 botones)
-    cols = st.columns(5)
+    cols = st.columns(7)
     with cols[0]:
         if st.button("\u200b", key="btn_hidden_rep_home"):
             st.session_state["pantalla_actual"] = "home"
@@ -5505,6 +5779,14 @@ def render_reportes():
     with cols[4]:
         if st.button("\u200b", key="btn_hidden_cerrar_privacidad_rep"):
             st.session_state["modal_privacidad_activo"] = False
+            st.rerun()
+    with cols[5]:
+        if st.button("\u200b", key="btn_hidden_abrir_terminos_rep"):
+            st.session_state["modal_terminos_activo"] = True
+            st.rerun()
+    with cols[6]:
+        if st.button("\u200b", key="btn_hidden_cerrar_terminos_rep"):
+            st.session_state["modal_terminos_activo"] = False
             st.rerun()
 
 # -----------------------------------------------------------------
