@@ -1,4 +1,3 @@
-
 --extra-index-url https://download.pytorch.org/whl/cpu
 streamlit
 requests==2.34.2
@@ -6,7 +5,7 @@ Pillow==10.3.0
 opencv-contrib-python-headless
 numpy
 jinja2
-weasyprint
+xhtml2pdf
 toml
 supabase
 transformers
