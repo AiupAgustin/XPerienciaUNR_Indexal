@@ -4331,16 +4331,13 @@ def render_reportes():
 
         div.stButton, div[data-testid="stElementContainer"]:has(div.stButton),
         div[data-testid="stDownloadButton"], div[data-testid="stElementContainer"]:has(div[data-testid="stDownloadButton"]) {
-            display: none !important;
-            visibility: hidden !important;
-            position: absolute !important;
+            position: fixed !important;
             top: -9999px !important;
             left: -9999px !important;
-            width: 0px !important;
-            height: 0px !important;
+            width: 1px !important;
+            height: 1px !important;
             opacity: 0 !important;
             pointer-events: none !important;
-            overflow: hidden !important;
         }
 
         /* Oculto fuera de pantalla pero activo para que React reciba eventos */
@@ -4525,16 +4522,25 @@ def render_reportes():
     # Generamos los listeners de descarga de la sesión antes del HTML principal
     js_downloads_listeners = ""
     for i, rep in enumerate(lista_reportes):
-        idx_dl = 1 + i
+        rep_key_btn = f"btn_dl_history_{rep['id']}"
         nom_rep_escapado = rep["archivo"].replace("'", "\\'")
         js_downloads_listeners += f"""
             const btnDown_{i} = document.getElementById('btnDownloadRow_{i}');
             if (btnDown_{i}) {{
                 btnDown_{i}.addEventListener('click', function() {{
                     cerrarModales();
-                    const dlBtns = parentDoc.querySelectorAll('div.stDownloadButton button');
-                    if (dlBtns.length > {idx_dl}) {{
-                        dlBtns[{idx_dl}].click();
+                    
+                    // Buscar el contenedor específico de Streamlit por su key única
+                    const wrapper = parentDoc.querySelector('div[data-testid="stElementContainer"]:has(button[data-testid="baseButton-secondary"])');
+                    const allDlContainers = parentDoc.querySelectorAll('div[data-testid="stDownloadButton"]');
+                    
+                    let targetBtn = null;
+                    if (allDlContainers.length > {1 + i}) {{
+                        targetBtn = allDlContainers[{1 + i}].querySelector('button');
+                    }}
+
+                    if (targetBtn) {{
+                        targetBtn.click();
                         
                         const nameElem = document.getElementById('popupSuccessFileName');
                         if (nameElem) nameElem.textContent = '{nom_rep_escapado}';
