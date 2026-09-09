@@ -3802,7 +3802,8 @@ def render_analizar():
     )
 
     if archivo_subido is not None:
-        ext = archivo_subido.name.split(".")[-1].lower() if "." in archivo_subido.name else ""
+        _, ext_raw = os.path.splitext(archivo_subido.name)
+        ext = ext_raw.lstrip(".").lower()
         
         # 1. Si el formato no es compatible
         if ext not in ["png", "jpg", "jpeg", "webp"]:
@@ -3861,7 +3862,7 @@ def render_analizar():
                 bytes_imagen = archivo_subido.getvalue()
 
                 # Creamos archivo efímero solo para moderación
-                sufijo = f".{ext}" if ext else ".png"
+                sufijo = f".{ext}" if ext in ["png", "jpg", "jpeg", "webp"] else ".png"
                 with tempfile.NamedTemporaryFile(delete=False, suffix=sufijo) as tmp_f:
                     tmp_f.write(bytes_imagen)
                     ruta_temp_check = tmp_f.name

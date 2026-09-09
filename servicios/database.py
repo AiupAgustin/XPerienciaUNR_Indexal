@@ -3,6 +3,8 @@ from supabase import create_client, Client
 import time
 import mimetypes
 import os
+import re
+import unicodedata
 
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -10,6 +12,21 @@ def get_supabase_client() -> Client:
     url = st.secrets["SUPABASE_URL"]
     key = st.secrets["SUPABASE_KEY"]
     return create_client(url, key)
+
+def _sanitizar_para_storage(nombre_original: str) -> str:
+    """Convierte cualquier nombre en una clave segura para Supabase Storage (S3 compatible)."""
+    base, ext = os.path.splitext(nombre_original)
+    if not ext:
+        ext = ".png"
+    # Quitar tildes/acentos
+    base_limpia = unicodedata.normalize('NFKD', base).encode('ASCII', 'ignore').decode('ASCII')
+    # Reemplazar paréntesis, comillas y símbolos raros por nada o guion bajo
+    base_limpia = re.sub(r'[^a-zA-Z0-9_\-]', '_', base_limpia)
+    # Limpiar guiones bajos consecutivos
+    base_limpia = re.sub(r'_+', '_', base_limpia).strip('_')
+    if not base_limpia:
+        base_limpia = "archivo"
+    return f"{base_limpia}{ext.lower()}"
 
 def subir_imagen_galeria(nombre_archivo: str, contenido_bytes: bytes) -> str:
     """
@@ -20,11 +37,12 @@ def subir_imagen_galeria(nombre_archivo: str, contenido_bytes: bytes) -> str:
     bucket = "galeria_imagenes"
     
     # Sanitizar nombre y evitar colisiones
-    extension = nombre_archivo.split(".")[-1] if "." in nombre_archivo else "png"
-    mime_type, _ = mimetypes.guess_type(nombre_archivo)
+    nombre_seguro = _sanitizar_para_storage(nombre_archivo)
+    mime_type, _ = mimetypes.guess_type(nombre_seguro)
     content_type = mime_type or "image/png"
-    
-    path_destino = f"{int(time.time())}_{nombre_archivo}"
+
+    # Un solo timestamp para garantizar unicidad sin colisiones
+    path_destino = f"{int(time.time())}_{nombre_seguro}"
     
     # Subida al bucket
     supabase.storage.from_(bucket).upload(
@@ -121,9 +139,9 @@ def registrar_analisis_galeria(
         with open(imagen_path, "rb") as f:
             contenido_bytes = f.read()
 
-        # Generar nombre único para el Storage preservando el nombre legible
-        nombre_storage = f"{int(time.time())}_{nombre_base_real}"
-        imagen_url = subir_imagen_galeria(nombre_storage, contenido_bytes)
+        
+        # Le pasamos el nombre original; subir_imagen_galeria se encarga de sanitizarlo y poner timestamp
+        imagen_url = subir_imagen_galeria(nombre_base_real, contenido_bytes)
 
         # Inyectar también la URL y el nombre en el master_json por si el reporte lo necesita
         if master_json and "metadata" in master_json:
