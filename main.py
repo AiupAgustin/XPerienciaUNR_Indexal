@@ -3802,8 +3802,24 @@ def render_analizar():
     )
 
     if archivo_subido is not None:
+        from PIL import Image
+
+        # Intentar extraer extensión del nombre
         _, ext_raw = os.path.splitext(archivo_subido.name)
         ext = ext_raw.lstrip(".").lower()
+
+        # Si el nombre no tiene extensión o es engañosa (ej. ".2"), detectamos el formato real desde los bytes
+        if ext not in ["png", "jpg", "jpeg", "webp"]:
+            try:
+                with Image.open(archivo_subido) as img_check:
+                    formato_real = (img_check.format or "").lower()
+                    if formato_real == "jpeg":
+                        formato_real = "jpg"
+                    if formato_real in ["png", "jpg", "webp"]:
+                        ext = formato_real
+                archivo_subido.seek(0)
+            except Exception:
+                pass
         
         # 1. Si el formato no es compatible
         if ext not in ["png", "jpg", "jpeg", "webp"]:

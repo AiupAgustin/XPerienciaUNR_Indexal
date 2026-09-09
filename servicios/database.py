@@ -16,11 +16,16 @@ def get_supabase_client() -> Client:
 def _sanitizar_para_storage(nombre_original: str) -> str:
     """Convierte cualquier nombre en una clave segura para Supabase Storage (S3 compatible)."""
     base, ext = os.path.splitext(nombre_original)
-    if not ext:
+    
+    # Validar que la extensión sea realmente de imagen; si es numérica (.2) o rara, forzar .png
+    ext_limpia = ext.lstrip(".").lower()
+    if ext_limpia not in ["png", "jpg", "jpeg", "webp"]:
+        base = nombre_original
         ext = ".png"
+
     # Quitar tildes/acentos
     base_limpia = unicodedata.normalize('NFKD', base).encode('ASCII', 'ignore').decode('ASCII')
-    # Reemplazar paréntesis, comillas y símbolos raros por nada o guion bajo
+    # Reemplazar paréntesis, comillas y símbolos raros por guiones bajos
     base_limpia = re.sub(r'[^a-zA-Z0-9_\-]', '_', base_limpia)
     # Limpiar guiones bajos consecutivos
     base_limpia = re.sub(r'_+', '_', base_limpia).strip('_')
