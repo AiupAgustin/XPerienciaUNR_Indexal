@@ -73,9 +73,16 @@ def guardar_analisis_en_galeria(titulo: str, categoria: str, imagen_url: str, ma
     return res.data[0] if res.data else {}
 
 def obtener_items_galeria() -> list:
-    """Devuelve todos los análisis guardados ordenados del más reciente al más antiguo."""
+    """Devuelve únicamente los datos de las tarjetas para la galería, sin cargar los JSON pesados."""
     supabase = get_supabase_client()
-    res = supabase.table("galeria").select("*").order("created_at", desc=True).execute()
+    # Traemos solo lo indispensable para las tarjetas de la galería
+    res = (
+        supabase.table("galeria")
+        .select("id, created_at, titulo, categoria, imagen_url, filtro_key, descripcion, modulo")
+        .order("created_at", desc=True)
+        .limit(30)  # Paginación de seguridad
+        .execute()
+    )
     return res.data or []
 
 def registrar_analisis_galeria(
