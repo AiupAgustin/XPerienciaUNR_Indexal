@@ -159,7 +159,7 @@ def registrar_analisis_galeria(
             "filtro_key": str(tipo_analisis).lower() if tipo_analisis else "semiotico",
             "descripcion": descripcion,
             "modulo": modulo_txt,
-            "master_json": master_json or {}
+            #"master_json": master_json or {} # la comento porque guarda datos de mas que hacen que la galeria cargue lento
         }
 
         # 5. Persistir en la tabla galeria de PostgreSQL usando el nombre real
