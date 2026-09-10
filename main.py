@@ -4541,8 +4541,48 @@ def render_reportes():
             print(f"Error generando PDF para descarga: {e}")
             pdf_generado_exitosamente = False
 
-    modal_fb_ok = "active" if st.session_state.get("feedback_status") == "ok" else ""
-    modal_fb_err = "active" if st.session_state.get("feedback_status") == "error" else ""
+    def procesar_envio_feedback():
+        raw = st.session_state.get("fb_bridge_input_fijo", "")
+        if raw:
+            import json
+            import urllib.parse
+            try:
+                decoded_str = urllib.parse.unquote(raw)
+                data = json.loads(decoded_str)
+                comentario = data.get("c", "")
+                contacto = data.get("e", "No especificado")
+                if comentario:
+                    from servicios.notificaciones import enviar_correo_feedback
+                    ok, msg = enviar_correo_feedback(
+                        mensaje=comentario,
+                        contacto=contacto,
+                        categoria=f"Reporte ({categoria_txt})"
+                    )
+                    st.session_state["feedback_status"] = "ok" if ok else "error"
+                    st.session_state["feedback_error_msg"] = msg if not ok else ""
+                    st.session_state["fb_event_id"] += 1
+            except Exception as ex:
+                st.session_state["feedback_status"] = "error"
+                st.session_state["feedback_error_msg"] = str(ex)
+                st.session_state["fb_event_id"] += 1
+
+    st.text_input(
+        "payload_bridge",
+        value="",
+        key="fb_bridge_input_fijo",
+        on_change=procesar_envio_feedback
+    )
+
+    # Leemos el estado actual y lo consumimos inmediatamente para que no reaparezca en futuras visitas
+    current_fb_status = st.session_state.get("feedback_status", "")
+    current_fb_event = st.session_state.get("fb_event_id", 0)
+    
+    # Reseteamos el status consumido
+    if st.session_state.get("feedback_status") is not None:
+        st.session_state["feedback_status"] = None
+
+    modal_fb_ok = ""
+    modal_fb_err = ""
 
     # Generamos los listeners para abrir el modal de éxito al hacer clic en el link de descarga directa
     js_downloads_listeners = ""
@@ -5500,18 +5540,19 @@ def render_reportes():
             const btnCerrarFeedErr = document.getElementById('btnCloseFeedbackErr');
             if (btnCerrarFeedErr) btnCerrarFeedErr.addEventListener('click', cerrarModales);
             
-            // Leemos el estado y el ID de evento inyectados desde Python
-            const fbStatus = "{st.session_state.get('feedback_status', '')}";
-            const fbEventId = "{st.session_state.get('fb_event_id', 0)}";
+            // Leemos el evento inyectado desde Python
+            const fbStatus = "{current_fb_status}";
+            const fbEventId = "{current_fb_event}";
 
-            if (fbEventId !== "0") {{
-                if (fbStatus === "ok" && modalFeedbackOk) {{
+            if (fbEventId !== "0" && fbStatus !== "") {{
+                setTimeout(function() {{
                     cerrarModales();
-                    abrirModalPosicionado(modalFeedbackOk);
-                }} else if (fbStatus === "error" && modalFeedbackError) {{
-                    cerrarModales();
-                    abrirModalPosicionado(modalFeedbackError);
-                }}
+                    if (fbStatus === "ok" && modalFeedbackOk) {{
+                        abrirModalPosicionado(modalFeedbackOk);
+                    }} else if (fbStatus === "error" && modalFeedbackError) {{
+                        abrirModalPosicionado(modalFeedbackError);
+                    }}
+                }}, 100);
             }}
 
             const modalPriv = document.getElementById('modalPoliticaPrivacidad');
@@ -5713,51 +5754,6 @@ def render_reportes():
         component_height = altura_base + altura_bloques_ajustada + altura_historial
 
     components.html(reportes_html, height=component_height, scrolling=False)
-
-    # Limpiamos el estado consumido para futuros envíos
-    if st.session_state.get("feedback_status") is not None:
-        st.session_state["feedback_status"] = None
-
-    # Variable de conteo para forzar un reset limpio del widget en cada envío
-    if "fb_input_counter" not in st.session_state:
-        st.session_state["fb_input_counter"] = 0
-
-    def procesar_envio_feedback():
-        input_key = f"fb_bridge_input_{st.session_state['fb_input_counter']}"
-        raw = st.session_state.get(input_key, "")
-        if raw:
-            import json
-            import urllib.parse
-            try:
-                decoded_str = urllib.parse.unquote(raw)
-                data = json.loads(decoded_str)
-                comentario = data.get("c", "")
-                contacto = data.get("e", "No especificado")
-                if comentario:
-                    from servicios.notificaciones import enviar_correo_feedback
-                    ok, msg = enviar_correo_feedback(
-                        mensaje=comentario,
-                        contacto=contacto,
-                        categoria=f"Reporte ({categoria_txt})"
-                    )
-                    st.session_state["feedback_status"] = "ok" if ok else "error"
-                    st.session_state["feedback_error_msg"] = msg if not ok else ""
-                    # Marcamos un nuevo evento único
-                    st.session_state["fb_event_id"] += 1
-            except Exception as ex:
-                st.session_state["feedback_status"] = "error"
-                st.session_state["feedback_error_msg"] = str(ex)
-                st.session_state["fb_event_id"] += 1
-
-        st.session_state["fb_input_counter"] += 1
-
-    # Input invisible con key dinámica para evitar bloqueos en envíos sucesivos
-    st.text_input(
-        "payload_bridge",
-        value="",
-        key=f"fb_bridge_input_{st.session_state['fb_input_counter']}",
-        on_change=procesar_envio_feedback
-    )
     
     # Botones de navegación interna y modales (5 botones)
     cols = st.columns(7)
