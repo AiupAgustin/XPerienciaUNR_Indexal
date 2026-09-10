@@ -10,6 +10,7 @@ import json
 import math
 import uuid
 import tempfile
+import copy
 from core.reportes.orquestador import compilar_datos_reporte, MAPA_CATEGORIA_A_ID
 from core.reportes.generador_html import renderizar_reporte_html
 from core.reportes.generador_pdf import generar_reporte_pdf
@@ -3820,7 +3821,7 @@ def render_analizar():
                 archivo_subido.seek(0)
             except Exception:
                 pass
-        
+
         # 1. Si el formato no es compatible
         if ext not in ["png", "jpg", "jpeg", "webp"]:
             st.session_state["modal_error_formato_activo"] = True
@@ -4116,7 +4117,7 @@ def render_analizar():
                     "titulo_reporte": titulos_por_categoria.get(cat_id, "Auditoría de Diseño Visual"),
                     "total_bloques": len(st.session_state["bloques_temporales"])
                 },
-                "bloques": st.session_state["bloques_temporales"]
+                "bloques": copy.deepcopy(st.session_state["bloques_temporales"])
             }
 
             st.session_state["ultimo_reporte_json"] = master_json
@@ -4135,20 +4136,32 @@ def render_analizar():
             nombre_limpio = os.path.splitext(nombre_img_original)[0]
             titulo_rep = master_json.get("metadata", {}).get("titulo_reporte", "Diagnóstico")
 
+            id_nuevo_rep = f"rep_{len(st.session_state.get('reportes_sesion', [])) + 1}"
+
+            # Guardamos la imagen física aislada para que este reporte siempre tenga su foto original
+            ext_img = st.session_state.get("imagen_extension", ".png")
+            ruta_img_sesion = os.path.join("assets", f"img_{id_nuevo_rep}{ext_img}")
+            with open(ruta_img_sesion, "wb") as f_img_rep:
+                f_img_rep.write(st.session_state.get("imagen_bytes", b""))
+
+            # Clonamos el json y le asignamos la ruta de su propia imagen
+            json_historial = copy.deepcopy(master_json)
+            json_historial["metadata"]["imagen_path"] = ruta_img_sesion
+
             nuevo_rep = {
-                "id": f"rep_{len(st.session_state.get('reportes_sesion', [])) + 1}",
+                "id": id_nuevo_rep,
                 "archivo": f"Diagnóstico_{nombre_limpio}_indexal.pdf",
                 "tipo": titulo_rep,
                 "modulos_analizados": total_modulos_activos,
                 "timestamp": time.time(),
-                "json_data": master_json,
+                "json_data": json_historial,
             }
 
             if "reportes_sesion" not in st.session_state:
                 st.session_state["reportes_sesion"] = []
             st.session_state["reportes_sesion"].append(nuevo_rep)
 
-            # Eliminamos el archivo temporal de trabajo
+            # Eliminamos solo el archivo temporal de trabajo
             if ruta_completa_imagen and os.path.exists(ruta_completa_imagen):
                 try:
                     os.remove(ruta_completa_imagen)
@@ -4340,7 +4353,7 @@ def render_reportes():
             pointer-events: none !important;
         }
 
-        /* Oculto fuera de pantalla pero activo para que React reciba eventos */
+        /* Oculto fuera de pantalla pero activo para que React reciba eventos*/ 
         div[data-testid="stTextInput"], div[data-testid="stElementContainer"]:has(div[data-testid="stTextInput"]) {
             position: fixed !important;
             top: -9000px !important;
@@ -4458,6 +4471,7 @@ def render_reportes():
             return f"Hace {diff // 3600} h"
 
     # 6. Construcción del bloque de Reportes de la Sesión
+
     lista_reportes = st.session_state["reportes_sesion"]
     hay_reportes = len(lista_reportes) > 0
 
@@ -4467,6 +4481,19 @@ def render_reportes():
             tiempo_relativo = calcular_tiempo_relativo(
                 rep.get("timestamp", time.time())
             )
+            
+            # Generamos los bytes del PDF de este reporte específico
+            pdf_b64 = ""
+            rep_json = rep.get("json_data", {})
+            if rep_json:
+                try:
+                    ruta_temp = os.path.join("assets", f"temp_{rep['id']}.pdf")
+                    generar_reporte_pdf(rep_json, ruta_temp)
+                    with open(ruta_temp, "rb") as f:
+                        pdf_b64 = base64.b64encode(f.read()).decode("utf-8")
+                except Exception as e:
+                    print(f"Error compilando PDF para {rep.get('id')}: {e}")
+
             html_items_sesion += f"""
             <div class="session-report-row">
                 <div class="session-report-left">
@@ -4478,9 +4505,9 @@ def render_reportes():
                         <span class="session-file-desc">{rep['tipo']} · {rep['modulos_analizados']} módulos · {tiempo_relativo}</span>
                     </div>
                 </div>
-                <button class="session-download-btn" id="btnDownloadRow_{idx}">
+                <a href="data:application/pdf;base64,{pdf_b64}" download="{rep['archivo']}" class="session-download-btn" id="btnDownloadRow_{idx}" style="text-decoration: none;">
                     <img src="{icon_download}" class="session-download-icon" alt="Descargar">
-                </button>
+                </a>
             </div>
             """
 
@@ -4519,36 +4546,18 @@ def render_reportes():
     modal_fb_ok = "active" if st.session_state.get("feedback_status") == "ok" else ""
     modal_fb_err = "active" if st.session_state.get("feedback_status") == "error" else ""
 
-    # Generamos los listeners de descarga de la sesión antes del HTML principal
+    # Generamos los listeners para abrir el modal de éxito al hacer clic en el link de descarga directa
     js_downloads_listeners = ""
     for i, rep in enumerate(lista_reportes):
-        rep_key_btn = f"btn_dl_history_{rep['id']}"
         nom_rep_escapado = rep["archivo"].replace("'", "\\'")
         js_downloads_listeners += f"""
             const btnDown_{i} = document.getElementById('btnDownloadRow_{i}');
             if (btnDown_{i}) {{
                 btnDown_{i}.addEventListener('click', function() {{
                     cerrarModales();
-                    
-                    // Buscar el contenedor específico de Streamlit por su key única
-                    const wrapper = parentDoc.querySelector('div[data-testid="stElementContainer"]:has(button[data-testid="baseButton-secondary"])');
-                    const allDlContainers = parentDoc.querySelectorAll('div[data-testid="stDownloadButton"]');
-                    
-                    let targetBtn = null;
-                    if (allDlContainers.length > {1 + i}) {{
-                        targetBtn = allDlContainers[{1 + i}].querySelector('button');
-                    }}
-
-                    if (targetBtn) {{
-                        targetBtn.click();
-                        
-                        const nameElem = document.getElementById('popupSuccessFileName');
-                        if (nameElem) nameElem.textContent = '{nom_rep_escapado}';
-                        
-                        abrirModalPosicionado(modalExito);
-                    }} else {{
-                        abrirModalPosicionado(modalError);
-                    }}
+                    const nameElem = document.getElementById('popupSuccessFileName');
+                    if (nameElem) nameElem.textContent = '{nom_rep_escapado}';
+                    abrirModalPosicionado(modalExito);
                 }});
             }}
         """
@@ -5719,26 +5728,6 @@ def render_reportes():
         key="btn_dl_main_pdf"
     )
 
-    # 2. Download Buttons invisibles para el historial de reportes
-    for idx, rep in enumerate(lista_reportes):
-        pdf_bytes_rep = b""
-        rep_json = rep.get("json_data")
-        if rep_json:
-            try:
-                ruta_temp = os.path.join("assets", f"temp_{rep['id']}.pdf")
-                generar_reporte_pdf(rep_json, ruta_temp)
-                with open(ruta_temp, "rb") as f:
-                    pdf_bytes_rep = f.read()
-            except Exception:
-                pass
-
-        st.download_button(
-            label=f"dl_rep_{rep['id']}",
-            data=pdf_bytes_rep,
-            file_name=rep["archivo"],
-            mime="application/pdf",
-            key=f"btn_dl_history_{rep['id']}"
-        )
 
     # Variable de conteo para forzar un reset limpio del widget en cada envío
     if "fb_input_counter" not in st.session_state:
