@@ -4517,6 +4517,7 @@ def render_reportes():
         html_seccion_historial = ""
 
     pdf_bytes_actual = None
+    pdf_b64_actual = ""
     nombre_pdf_actual = "Diagnostico_indexal.pdf"
     pdf_generado_exitosamente = False
     
@@ -4532,6 +4533,10 @@ def render_reportes():
             nom_img = os.path.splitext(os.path.basename(nombre_base))[0]
             nombre_pdf_actual = f"Diagnostico_{nom_img}_indexal.pdf"
             pdf_generado_exitosamente = True
+
+            # Convertimos a Base64 para la descarga directa en cliente
+            if pdf_bytes_actual:
+                pdf_b64_actual = base64.b64encode(pdf_bytes_actual).decode("utf-8")
         except Exception as e:
             print(f"Error generando PDF para descarga: {e}")
             pdf_generado_exitosamente = False
@@ -5563,8 +5568,13 @@ def render_reportes():
                 if (!hayReporte) return;
 
                 if (pdfExitoso) {{
-                    const dlBtn = parentDoc.querySelector('div[data-testid="stDownloadButton"] button');
-                    if (dlBtn) dlBtn.click();
+                    // Disparo nativo de descarga en cliente (evita rerun del iframe)
+                    const tempLink = document.createElement('a');
+                    tempLink.href = 'data:application/pdf;base64,{pdf_b64_actual}';
+                    tempLink.download = '{nombre_pdf_actual}';
+                    document.body.appendChild(tempLink);
+                    tempLink.click();
+                    document.body.removeChild(tempLink);
                     
                     const nameElem = document.getElementById('popupSuccessFileName');
                     if (nameElem) nameElem.textContent = '{nombre_pdf_actual}';
@@ -5707,16 +5717,6 @@ def render_reportes():
     # Limpiamos el estado consumido para futuros envíos
     if st.session_state.get("feedback_status") is not None:
         st.session_state["feedback_status"] = None
-
-    # 1. Download Button invisible para el botón principal "Exportar a PDF"
-    st.download_button(
-        label="dl_main_pdf",
-        data=pdf_bytes_actual or b"",
-        file_name=nombre_pdf_actual,
-        mime="application/pdf",
-        key="btn_dl_main_pdf"
-    )
-
 
     # Variable de conteo para forzar un reset limpio del widget en cada envío
     if "fb_input_counter" not in st.session_state:
