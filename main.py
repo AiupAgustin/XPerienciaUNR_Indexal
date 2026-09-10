@@ -4138,15 +4138,17 @@ def render_analizar():
 
             id_nuevo_rep = f"rep_{len(st.session_state.get('reportes_sesion', [])) + 1}"
 
-            # Guardamos la imagen física aislada para que este reporte siempre tenga su foto original
-            ext_img = st.session_state.get("imagen_extension", ".png")
-            ruta_img_sesion = os.path.join("assets", f"img_{id_nuevo_rep}{ext_img}")
-            with open(ruta_img_sesion, "wb") as f_img_rep:
-                f_img_rep.write(st.session_state.get("imagen_bytes", b""))
+            # Convertimos los bytes en Data URI Base64 en memoria (sin tocar disco)
+            ext_img = st.session_state.get("imagen_extension", ".png").replace(".", "").lower()
+            mime_img = "jpeg" if ext_img in ["jpg", "jpeg"] else ext_img
+            raw_bytes = st.session_state.get("imagen_bytes", b"")
+            b64_str = base64.b64encode(raw_bytes).decode("utf-8") if raw_bytes else ""
+            img_data_uri = f"data:image/{mime_img};base64,{b64_str}" if b64_str else ""
 
-            # Clonamos el json y le asignamos la ruta de su propia imagen
+            # Clonamos el json y le asignamos directamente su propia imagen en memoria
             json_historial = copy.deepcopy(master_json)
-            json_historial["metadata"]["imagen_path"] = ruta_img_sesion
+            json_historial["metadata"]["imagen_b64"] = img_data_uri
+            json_historial["metadata"]["imagen_path"] = img_data_uri
 
             nuevo_rep = {
                 "id": id_nuevo_rep,
