@@ -4108,9 +4108,18 @@ def render_analizar():
             # Obtenemos el nombre original subido por el usuario
             nombre_real_archivo = st.session_state.get("nombre_imagen", "Pieza analizada")
 
+            # 1. Generamos el Data URI Base64 de la imagen de inmediato en memoria
+            ext_img = st.session_state.get("imagen_extension", ".png").replace(".", "").lower()
+            mime_img = "jpeg" if ext_img in ["jpg", "jpeg"] else ext_img
+            raw_bytes = st.session_state.get("imagen_bytes", b"")
+            b64_str = base64.b64encode(raw_bytes).decode("utf-8") if raw_bytes else ""
+            img_data_uri = f"data:image/{mime_img};base64,{b64_str}" if b64_str else ""
+
+            # 2. Sellamos master_json con su propia imagen Base64 para que sea autónomo
             master_json = {
                 "metadata": {
-                    "imagen_path": ruta_completa_imagen,
+                    "imagen_path": img_data_uri,
+                    "imagen_b64": img_data_uri,
                     "nombre_pieza": nombre_real_archivo,
                     "nombre_archivo": nombre_real_archivo,
                     "categoria_id": cat_id,
@@ -4120,7 +4129,7 @@ def render_analizar():
                 "bloques": copy.deepcopy(st.session_state["bloques_temporales"])
             }
 
-            st.session_state["ultimo_reporte_json"] = master_json
+            st.session_state["ultimo_reporte_json"] = copy.deepcopy(master_json)
 
             resumen_desc = master_json.get("metadata", {}).get("resumen_ejecutivo") or "Sistema analizado"
             registrar_analisis_galeria(
@@ -4129,7 +4138,7 @@ def render_analizar():
                 modulos_seleccionados=modulos_a_ejecutar,
                 descripcion=resumen_desc,
                 master_json=master_json,
-                nombre_personalizado=nombre_real_archivo  # Le pasamos el nombre real
+                nombre_personalizado=nombre_real_archivo
             )
 
             nombre_img_original = st.session_state.get("nombre_imagen", "Analisis")
@@ -4138,25 +4147,13 @@ def render_analizar():
 
             id_nuevo_rep = f"rep_{len(st.session_state.get('reportes_sesion', [])) + 1}"
 
-            # Convertimos los bytes en Data URI Base64 en memoria (sin tocar disco)
-            ext_img = st.session_state.get("imagen_extension", ".png").replace(".", "").lower()
-            mime_img = "jpeg" if ext_img in ["jpg", "jpeg"] else ext_img
-            raw_bytes = st.session_state.get("imagen_bytes", b"")
-            b64_str = base64.b64encode(raw_bytes).decode("utf-8") if raw_bytes else ""
-            img_data_uri = f"data:image/{mime_img};base64,{b64_str}" if b64_str else ""
-
-            # Clonamos el json y le asignamos directamente su propia imagen en memoria
-            json_historial = copy.deepcopy(master_json)
-            json_historial["metadata"]["imagen_b64"] = img_data_uri
-            json_historial["metadata"]["imagen_path"] = img_data_uri
-
             nuevo_rep = {
                 "id": id_nuevo_rep,
                 "archivo": f"Diagnóstico_{nombre_limpio}_indexal.pdf",
                 "tipo": titulo_rep,
                 "modulos_analizados": total_modulos_activos,
                 "timestamp": time.time(),
-                "json_data": json_historial,
+                "json_data": copy.deepcopy(master_json),
             }
 
             if "reportes_sesion" not in st.session_state:
