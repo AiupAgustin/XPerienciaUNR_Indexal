@@ -5479,6 +5479,8 @@ def render_reportes():
                 if (modalError) modalError.classList.remove('active');
                 if (modalFeedbackOk) modalFeedbackOk.classList.remove('active');
                 if (modalFeedbackError) modalFeedbackError.classList.remove('active');
+                if (modalPriv) modalPriv.classList.remove('active');
+                if (modalTerm) modalTerm.classList.remove('active');
             }}
 
             const btnCerrarOk = document.getElementById('btnCloseExito');
@@ -5517,40 +5519,34 @@ def render_reportes():
                 posicionarModal(modalTerm);
             }}
 
-            // Links del footer
+            // Control local de modales de Términos y Privacidad (sin rerun de Streamlit)
             const footerLinks = document.querySelectorAll('.footer-link');
-            if (footerLinks.length > 0) {{
-                // Click en 'Términos y condiciones' -> botón invisible 5
+            if (footerLinks.length > 0 && modalTerm) {{
                 footerLinks[0].addEventListener('click', function(e) {{
                     e.stopPropagation();
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 5) allButtons[5].click();
+                    posicionarModal(modalTerm);
+                    modalTerm.classList.add('active');
                 }});
             }}
-            if (footerLinks.length > 1) {{
-                // Click en 'Política de privacidad' -> botón invisible 3
+            if (footerLinks.length > 1 && modalPriv) {{
                 footerLinks[1].addEventListener('click', function(e) {{
                     e.stopPropagation();
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 3) allButtons[3].click();
+                    posicionarModal(modalPriv);
+                    modalPriv.classList.add('active');
                 }});
             }}
 
-            // Cierre de Privacidad (X) -> botón invisible 4
             const btnCerrarPriv = document.getElementById('btnCerrarPopupPrivacidad');
-            if (btnCerrarPriv) {{
+            if (btnCerrarPriv && modalPriv) {{
                 btnCerrarPriv.addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 4) allButtons[4].click();
+                    modalPriv.classList.remove('active');
                 }});
             }}
 
-            // Cierre de Términos (X) -> botón invisible 6
             const btnCerrarTerm = document.getElementById('btnCerrarPopupTerminos');
-            if (btnCerrarTerm) {{
+            if (btnCerrarTerm && modalTerm) {{
                 btnCerrarTerm.addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 6) allButtons[6].click();
+                    modalTerm.classList.remove('active');
                 }});
             }}
 
@@ -5777,23 +5773,7 @@ def render_reportes():
         if st.button("\u200b", key="btn_hidden_rep_galeria"):
             st.session_state["pantalla_actual"] = "galeria"
             st.rerun()
-    with cols[3]:
-        if st.button("\u200b", key="btn_hidden_abrir_privacidad_rep"):
-            st.session_state["modal_privacidad_activo"] = True
-            st.rerun()
-    with cols[4]:
-        if st.button("\u200b", key="btn_hidden_cerrar_privacidad_rep"):
-            st.session_state["modal_privacidad_activo"] = False
-            st.rerun()
-    with cols[5]:
-        if st.button("\u200b", key="btn_hidden_abrir_terminos_rep"):
-            st.session_state["modal_terminos_activo"] = True
-            st.rerun()
-    with cols[6]:
-        if st.button("\u200b", key="btn_hidden_cerrar_terminos_rep"):
-            st.session_state["modal_terminos_activo"] = False
-            st.rerun()
-
+    
 # -----------------------------------------------------------------
 # CONTROLADOR PRINCIPAL DE VISTAS
 # -----------------------------------------------------------------
