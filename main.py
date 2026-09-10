@@ -985,7 +985,6 @@ def render_galeria():
             {area_visual}
             <div class="card-body">
                 <h3 class="card-title" translate="no">{item['categoria']}</h3>
-                <p class="card-desc" translate="no">{item['descripcion']}</p>
                 <div class="card-footer-row">
                     <span class="card-module-text" translate="no">{item['modulo']}</span>
                 </div>
@@ -1243,8 +1242,10 @@ def render_galeria():
             .card-body {{
                 display: flex;
                 flex-direction: column;
-                padding: 20px 20px 22px 20px;
-                gap: 10px;
+                align-items: flex-start;
+                align-self: stretch;
+                padding: 16px;
+                gap: 8px;
                 background-color: #FFFFFF;
                 box-sizing: border-box;
             }}
@@ -1258,24 +1259,11 @@ def render_galeria():
                 margin: 0;
             }}
 
-            .card-desc {{
-                color: #5E6366;
-                font-size: 13px;
-                font-weight: 400;
-                line-height: 1.4;
-                margin: 0;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-                min-height: 36px;
-            }}
-
             .card-footer-row {{
                 display: flex;
                 align-items: center;
                 width: 100%;
-                margin-top: 6px;
+                margin-top: 0px;
             }}
 
             .card-module-text {{
@@ -1530,7 +1518,7 @@ def render_galeria():
     total_tarjetas = len(INFORMES_MOCK)
     filas = max(1, math.ceil(total_tarjetas / 3))
     
-    altura_grilla_dinamica = (filas * 400) + 30
+    altura_grilla_dinamica = (filas * 325) + 30
     altura_total_componente = 80 + 360 + 80 + altura_grilla_dinamica + 65 
 
     components.html(galeria_unificada_html, height=altura_total_componente, scrolling=False)
