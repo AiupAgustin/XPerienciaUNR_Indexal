@@ -72,6 +72,8 @@ def guardar_analisis_en_galeria(titulo: str, categoria: str, imagen_url: str, ma
     res = supabase.table("galeria").insert(payload).execute()
     return res.data[0] if res.data else {}
 
+# 1. Agregamos el decorador con un tiempo de vida (TTL) de 60 segundos
+@st.cache_data(ttl=60)
 def obtener_items_galeria() -> list:
     """Devuelve todos los análisis guardados ordenados del más reciente al más antiguo."""
     supabase = get_supabase_client()
@@ -170,6 +172,7 @@ def registrar_analisis_galeria(
             master_json=tarjeta_data
         )
 
+        obtener_items_galeria.clear()  # Invalida la caché para que traiga la nueva tarjeta
         return True
     except Exception as e:
         print(f"Error al registrar en Supabase: {e}")

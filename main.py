@@ -1418,40 +1418,34 @@ def render_galeria():
                 posicionarModal(modalTerm);
             }}
 
-            // Links del footer
+            // Control local de modales sin disparar reruns de Streamlit
             const footerLinks = document.querySelectorAll('.footer-link');
-            if (footerLinks.length > 0) {{
-                // Click en 'Términos y condiciones' -> botón invisible 5
+            if (footerLinks.length > 0 && modalTerm) {{
                 footerLinks[0].addEventListener('click', function(e) {{
                     e.stopPropagation();
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 5) allButtons[5].click();
+                    posicionarModal(modalTerm);
+                    modalTerm.classList.add('active');
                 }});
             }}
-            if (footerLinks.length > 1) {{
-                // Click en 'Política de privacidad' -> botón invisible 3
+            if (footerLinks.length > 1 && modalPriv) {{
                 footerLinks[1].addEventListener('click', function(e) {{
                     e.stopPropagation();
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 3) allButtons[3].click();
+                    posicionarModal(modalPriv);
+                    modalPriv.classList.add('active');
                 }});
             }}
 
-            // Click en la cruz de cierre (X) de Privacidad -> botón invisible 4
             const btnCerrarPriv = document.getElementById('btnCerrarPopupPrivacidad');
-            if (btnCerrarPriv) {{
+            if (btnCerrarPriv && modalPriv) {{
                 btnCerrarPriv.addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 4) allButtons[4].click();
+                    modalPriv.classList.remove('active');
                 }});
             }}
 
-            // Click en la cruz de cierre (X) de Términos -> botón invisible 6
             const btnCerrarTerm = document.getElementById('btnCerrarPopupTerminos');
-            if (btnCerrarTerm) {{
+            if (btnCerrarTerm && modalTerm) {{
                 btnCerrarTerm.addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    if (allButtons.length > 6) allButtons[6].click();
+                    modalTerm.classList.remove('active');
                 }});
             }}
             
