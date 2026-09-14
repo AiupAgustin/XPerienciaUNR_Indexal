@@ -404,13 +404,12 @@ def obtener_sidebar_html(
     icon_note_add="",
     icon_photo_lib="",
     icon_assessment="",
-    icon_settings="",
 ):
     act_inicio = "active" if item_activo == "inicio" else ""
     act_nuevo = "active" if item_activo == "nuevo" else ""
     act_galeria = "active" if item_activo == "galeria" else ""
     act_reportes = "active" if item_activo == "reportes" else ""
-    act_config = "active" if item_activo == "config" else ""
+    
 
     return f"""
     <style>
@@ -461,11 +460,6 @@ def obtener_sidebar_html(
             <button class="nav-item-btn {act_reportes}" id="btnMenuReportes">
                 <img src="{icon_assessment}" class="nav-icon-img" alt="Reportes">
                 <span class="nav-item-text">Reportes</span>
-            </button>
-
-            <button class="nav-item-btn {act_config}" id="btnMenuConfig">
-                <img src="{icon_settings}" class="nav-icon-img" alt="Configuración">
-                <span class="nav-item-text">Configuración</span>
             </button>
         </div>
     </aside>
@@ -1831,7 +1825,6 @@ def render_analizar():
     icon_note_add = cargar_svg_base64("assets/iconos/note_add.svg")
     icon_photo_lib = cargar_svg_base64("assets/iconos/photo_library.svg")
     icon_assessment = cargar_svg_base64("assets/iconos/assessment.svg")
-    icon_settings = cargar_svg_base64("assets/iconos/settings.svg")
     icon_search = cargar_svg_base64("assets/iconos/search.svg")
     icon_frame = cargar_svg_base64("assets/iconos/frame.svg")
     icon_palette = cargar_svg_base64("assets/iconos/palette.svg")
@@ -1862,7 +1855,6 @@ def render_analizar():
         icon_note_add=icon_note_add,
         icon_photo_lib=icon_photo_lib,
         icon_assessment=icon_assessment,
-        icon_settings=icon_settings,
     )
 
     wcag_checked = "checked" if st.session_state["transversal_wcag"] else ""
@@ -4355,7 +4347,6 @@ def render_reportes():
     icon_note_add = cargar_svg_base64("assets/iconos/note_add.svg")
     icon_photo_lib = cargar_svg_base64("assets/iconos/photo_library.svg")
     icon_assessment = cargar_svg_base64("assets/iconos/assessment.svg")
-    icon_settings = cargar_svg_base64("assets/iconos/settings.svg")
     icon_print = cargar_svg_base64("assets/iconos/print.svg")
     icon_download = cargar_svg_base64("assets/iconos/download.svg")
     js_posicionador = obtener_js_posicionamiento_modal()
@@ -4379,7 +4370,6 @@ def render_reportes():
         icon_note_add=icon_note_add,
         icon_photo_lib=icon_photo_lib,
         icon_assessment=icon_assessment,
-        icon_settings=icon_settings,
     )
 
     # 4. Verificación de reporte activo
