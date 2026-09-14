@@ -4351,6 +4351,7 @@ def render_reportes():
     icon_assessment = cargar_svg_base64("assets/iconos/assessment.svg")
     icon_print = cargar_svg_base64("assets/iconos/print.svg")
     icon_download = cargar_svg_base64("assets/iconos/download.svg")
+    icon_arrow = cargar_svg_base64("assets/iconos/vector.svg")
     js_posicionador = obtener_js_posicionamiento_modal()
     if "modal_privacidad_activo" not in st.session_state:
         st.session_state["modal_privacidad_activo"] = False
@@ -4840,6 +4841,38 @@ def render_reportes():
             .report-meta-val {{
                 color: #0057FF;
                 font-weight: 700;
+            }}
+
+            .header-actions-group {{
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }}
+
+            .btn-nuevo-analisis-header {{
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 22px;
+                border-radius: 8px;
+                background-color: #0057FF;
+                color: #FFFFFF;
+                font-size: 13.5px;
+                font-weight: 600;
+                border: none;
+                cursor: pointer;
+                transition: background-color 0.2s ease, transform 0.1s ease;
+                user-select: none;
+            }}
+
+            .btn-nuevo-analisis-header:hover {{ background-color: #0046D5; }}
+            .btn-nuevo-analisis-header:active {{ transform: scale(0.98); }}
+
+            .btn-nuevo-analisis-icon {{
+                width: 14px;
+                height: 14px;
+                display: block;
+                filter: brightness(0) invert(1);
             }}
 
             .btn-export-pdf {{
@@ -5350,10 +5383,16 @@ def render_reportes():
                             <span>MÓDULO DE ANÁLISIS: <span class="report-meta-val">{modulo_txt}</span></span>
                         </div>
                     </div>
-                    <button class="btn-export-pdf {'disabled' if not hay_reporte_activo else ''}" id="btnExportarPdf">
-                        <img src="{icon_print}" class="btn-export-icon" alt="Imprimir">
-                        <span>Exportar a PDF</span>
-                    </button>
+                    <div class="header-actions-group">
+                        <button class="btn-export-pdf {'disabled' if not hay_reporte_activo else ''}" id="btnExportarPdf">
+                            <img src="{icon_print}" class="btn-export-icon" alt="Imprimir">
+                            <span>Exportar a PDF</span>
+                        </button>
+                        <button class="btn-nuevo-analisis-header" id="btnHeaderNuevoAnalisis">
+                            <span>Nuevo análisis</span>
+                            <img src="{icon_arrow}" class="btn-nuevo-analisis-icon" alt="->">
+                        </button>
+                    </div>
                 </section>
 
                 <div class="report-sheet-container">
@@ -5480,10 +5519,16 @@ def render_reportes():
             document.getElementById('btnSidebarLogo').addEventListener('click', irAHome);
             document.getElementById('btnMenuInicio').addEventListener('click', irAHome);
 
-            document.getElementById('btnMenuNuevo').addEventListener('click', function() {{
+            function irANuevoAnalisis() {{
                 const allButtons = parentDoc.querySelectorAll('div.stButton button');
                 if (allButtons.length > 1) allButtons[1].click();
-            }});
+            }}
+
+            const btnMenuNuevo = document.getElementById('btnMenuNuevo');
+            if (btnMenuNuevo) btnMenuNuevo.addEventListener('click', irANuevoAnalisis);
+
+            const btnHeaderNuevo = document.getElementById('btnHeaderNuevoAnalisis');
+            if (btnHeaderNuevo) btnHeaderNuevo.addEventListener('click', irANuevoAnalisis);
 
             document.getElementById('btnMenuGaleria').addEventListener('click', function() {{
                 const allButtons = parentDoc.querySelectorAll('div.stButton button');
