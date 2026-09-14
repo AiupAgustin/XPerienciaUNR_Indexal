@@ -1839,6 +1839,8 @@ def render_analizar():
     icon_spinner = cargar_svg_base64("assets/iconos/spinner.svg")
     modal_bienvenida_activo = "active" if (not st.session_state["terminos_aceptados"] and not st.session_state["modal_privacidad_activo"]) else ""
     modal_exito_activo = "active" if st.session_state["modal_carga_exito_activo"] else ""
+    if st.session_state["modal_carga_exito_activo"]:
+        st.session_state["modal_carga_exito_activo"] = False
     modal_error_activo = "active" if st.session_state["modal_error_analisis_activo"] else ""
     modal_err_formato_activo = "active" if st.session_state["modal_error_formato_activo"] else ""
     modal_err_peso_activo = "active" if st.session_state["modal_error_peso_activo"] else ""
@@ -3411,6 +3413,10 @@ def render_analizar():
             const modalExito = document.getElementById('modalCargaExito');
             if (modalExito && modalExito.classList.contains('active')) {{
                 posicionarModal(modalExito);
+                // Cierre automático tras 3 segundos (3000 ms)
+                setTimeout(function() {{
+                    modalExito.classList.remove('active');
+                }}, 3000);
             }}
 
             const modalErrFormato = document.getElementById('modalErrorFormato');
@@ -3675,15 +3681,11 @@ def render_analizar():
                 }}
             }}
 
-            // Cerrar popup de éxito
+            // Cerrar popup de éxito (cierre local inmediato sin recarga)
             const btnCerrarExito = document.getElementById('btnCerrarPopupExito');
-            if (btnCerrarExito) {{
+            if (btnCerrarExito && modalExito) {{
                 btnCerrarExito.addEventListener('click', function() {{
-                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    const idxCerrarExito = {15 + len(lista_modulos_activa)};
-                    if (allButtons.length > idxCerrarExito) {{
-                        allButtons[idxCerrarExito].click();
-                    }}
+                    modalExito.classList.remove('active');
                 }});
             }}
 
