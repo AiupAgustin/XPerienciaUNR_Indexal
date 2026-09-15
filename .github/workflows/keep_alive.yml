@@ -2,14 +2,51 @@ name: Keep Streamlit Alive
 
 on:
   schedule:
-    # Corre cada 3 horas (a las 00:23, 03:23, 06:23, 09:23, 12:23, 15:23, 18:23, 21:23 UTC)
+    # Corre cada 3 horas como lo tenías configurado
     - cron: '23 */3 * * *'
-  workflow_dispatch: # Permite probarlo manualmente desde la pestaña Actions en GitHub
+  workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Streamlit App
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar Playwright
         run: |
-          curl -I -s -L "https://indexal.streamlit.app/" || true
+          pip install playwright
+          playwright install chromium --with-deps
+
+      - name: Visitar app con navegador real
+        run: |
+          python -c "
+          from playwright.sync_api import sync_playwright
+          import time
+
+          URL = 'https://indexal.streamlit.app/'
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True)
+              context = browser.new_context(
+                  user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+              )
+              page = context.new_page()
+              print(f'Conectando a {URL}...')
+              page.goto(URL, wait_until='networkidle', timeout=60000)
+
+              # Si la app se durmió, hace clic en el botón de despertar
+              wake_btn = page.locator('button:has-text(\"Yes, get this app back up\")')
+              if wake_btn.count() > 0:
+                  print('App dormida detectada. Haciendo clic para reactivar...')
+                  wake_btn.first.click()
+                  page.wait_for_timeout(10000)
+              else:
+                  print('App activa. WebSocket conectado exitosamente.')
+
+              time.sleep(15)
+              browser.close()
+              print('Completado.')
+          "
