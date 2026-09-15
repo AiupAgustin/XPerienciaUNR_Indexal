@@ -2,7 +2,6 @@ name: Keep Streamlit Alive
 
 on:
   schedule:
-    # Corre cada 3 horas como lo tenías configurado
     - cron: '23 */3 * * *'
   workflow_dispatch:
 
@@ -10,19 +9,15 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Instalar Playwright
         run: |
-          pip install playwright
-          playwright install chromium --with-deps
+          python3 -m pip install --upgrade pip
+          pip3 install playwright
+          python3 -m playwright install chromium --with-deps
 
       - name: Visitar app con navegador real
         run: |
-          python -c "
+          python3 -c "
           from playwright.sync_api import sync_playwright
           import time
 
@@ -37,7 +32,6 @@ jobs:
               print(f'Conectando a {URL}...')
               page.goto(URL, wait_until='networkidle', timeout=60000)
 
-              # Si la app se durmió, hace clic en el botón de despertar
               wake_btn = page.locator('button:has-text(\"Yes, get this app back up\")')
               if wake_btn.count() > 0:
                   print('App dormida detectada. Haciendo clic para reactivar...')
