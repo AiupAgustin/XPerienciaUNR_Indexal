@@ -113,14 +113,23 @@ def ejec_composicion_visual(imagen_path: str) -> dict:
             "con ligeras asimetrías o diagonales secundarias."
         )
 
-    # 3. Retornamos el diccionario incluyendo la clave explícita para la tabla
+    # 3. Formateo de presentación para el reporte (preservando res_simetria original)
+    res_simetria_vista = dict(res_simetria) if isinstance(res_simetria, dict) else res_simetria
+
+    if isinstance(res_simetria_vista, dict):
+        if "indice_simetria" in res_simetria_vista and isinstance(res_simetria_vista["indice_simetria"], (int, float)):
+            res_simetria_vista["indice_simetria"] = f"{round(res_simetria_vista['indice_simetria'], 2)} / Escala 0 a 1"
+        
+        if "desviacion_centro_masa" in res_simetria_vista and isinstance(res_simetria_vista["desviacion_centro_masa"], (int, float)):
+            res_simetria_vista["desviacion_centro_masa"] = f"{round(res_simetria_vista['desviacion_centro_masa'], 3)} / Escala 0 a 0.5"
+
     return {
         "status": "success",
         "checkbox": "cb1_composicion_visual",
         "bloque": "1. Composición Visual",
         "analisis_estabilidad_vs_conflicto": diagnostico,
         "tension_y_lineas": res_kandinsky,
-        "balance_simetrico": res_simetria
+        "balance_simetrico": res_simetria_vista
     }
 
 # FUNCION QUE SE ASOCIA AL CHECKBOX 2 ( paleta cromática)

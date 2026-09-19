@@ -85,13 +85,25 @@ def calcular_tension_kandinsky(imagen_path):
         pct_diag = (conteo_diagonales / total) * 100
         pct_orto = (conteo_ortogonales / total) * 100
         
-        # Aplicamos la regla compositiva de Kandinsky
-        if pct_diag >= 25.0:
+        # Clasificación compositiva y justificación de fuerzas en el espacio plástico
+        if pct_diag >= 50.0:
             clasificacion = "Tensión Dinámica Alta"
-            diagnostico = "Predominan las líneas diagonales, generando un clima visual de inestabilidad, movimiento y fuerza activa."
+            diagnostico = (
+                f"Predominio de fuerzas diagonales ({round(pct_diag, 1)}%): "
+                f"los vectores oblicuos quiebran la rigidez ortogonal y activan el espacio plástico con tensión y movimiento dirigido."
+            )
+        elif pct_diag >= 25.0:
+            clasificacion = "Tensión Dinámica Moderada"
+            diagnostico = (
+                f"Presencia equilibrada de diagonales ({round(pct_diag, 1)}%) y ejes ortogonales ({round(pct_orto, 1)}%): "
+                f"introduce dinamismo y dirección visual manteniendo anclajes de estabilidad estructural."
+            )
         else:
             clasificacion = "Composición Estática"
-            diagnostico = "Predominan las líneas horizontales y verticales, reforzando nociones de estabilidad, equilibrio, calma o estructura rígida."
+            diagnostico = (
+                f"Predominio de ejes ortogonales ({round(pct_orto, 1)}%): "
+                f"las fuerzas horizontales y verticales asientan la pieza en el plano, priorizando el reposo y la solidez compositiva."
+            )
             
         return {
             "clasificacion_kandinsky": clasificacion,

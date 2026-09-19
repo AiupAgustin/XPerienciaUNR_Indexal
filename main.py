@@ -5734,7 +5734,7 @@ def render_reportes():
         
         # Tabla de alturas según la carga visual y textual de cada módulo
         ALTURAS_POR_MODULO = {
-            "composicion_visual": 1000,  # NO TOCAR VALOR
+            "composicion_visual": 1050,  # NO TOCAR VALOR
             "paleta_cromatica": 900,     # NO TOCAR VALOR
             "iluminacion": 1450,          # NO TOCAR VALOR
             "semiotica_imagen": 1200,     # NO TOCAR VALOR
