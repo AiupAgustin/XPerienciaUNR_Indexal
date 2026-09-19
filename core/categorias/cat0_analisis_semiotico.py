@@ -147,7 +147,8 @@ def ejec_paleta_cromatica(imagen_path: str) -> dict:
         return atributos
 
     temp_dom = atributos["contraste_temperatura"]["temperatura_dominante"]
-    semiotica = evaluar_semiotica_cromatica(paleta, temp_dom)
+    desv_brillo = atributos.get("desviacion_brillo_std", None)
+    semiotica = evaluar_semiotica_cromatica(paleta, temp_dom, desv_brillo=desv_brillo)
 
     return {
         "status": "success",

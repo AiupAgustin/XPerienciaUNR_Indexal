@@ -73,8 +73,10 @@ def analizar_atributos_cromaticos(imagen_path):
             
         # Pasamos a HSV para medir Saturación (S) y Brillo Real (V)
         img_hsv = cv2.cvtColor(img_small, cv2.COLOR_BGR2HSV)
+        v_channel = img_hsv[:, :, 2]
         saturacion_promedio = np.mean(img_hsv[:, :, 1])
-        brillo_promedio = np.mean(img_hsv[:, :, 2])
+        brillo_promedio = np.mean(v_channel)
+        desv_brillo = float(np.std(v_channel))  # Mide dispersión / dureza del contraste
         
         # Mapeamos al Sistema de Zonas de Ansel Adams
         zona_numerica = int(brillo_promedio // 23.18)
@@ -115,6 +117,7 @@ def analizar_atributos_cromaticos(imagen_path):
             "brillo_promedio_0_255": round(float(brillo_promedio), 2),
             "ansel_adams_zona_promedio": zona_ansel_dominante,
             "saturacion_promedio_0_255": round(float(saturacion_promedio), 2),
+            "desviacion_brillo_std": round(desv_brillo, 2),
             "contraste_temperatura": {
                 "temperatura_dominante": temperatura_dominante,
                 "porcentaje_calido": round(porcentaje_calido, 2),
@@ -126,24 +129,44 @@ def analizar_atributos_cromaticos(imagen_path):
         return {"error": f"Error en atributos: {str(e)}"}
 
 # Evaluador de semiótica cromática
-def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante):
+def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante, desv_brillo=None):
     """
     Evalúa la relación angular en el círculo cromático (Hue) 
     y asigna la interpretación semiótica según Eva Heller / Kandinsky / Itten.
+    En imágenes acromáticas, evalúa la calidad lumínica y dureza del contraste (Ansel Adams).
     """
     if not paleta_rgb or isinstance(paleta_rgb, dict):
         return {"error": "Paleta no válida para análisis semiótico"}
 
     if "acromática" in temperatura_dominante.lower():
+        # Evaluación técnica de la dureza de la luz y pasos tonales según dispersión (std)
+        if desv_brillo is not None:
+            if desv_brillo >= 60.0:
+                calidad_luz = (
+                    f"Iluminación dura y alto contraste (desv. {round(desv_brillo, 1)}): "
+                    f"transiciones tonales abruptas entre luces plenas y sombras profundas, acentuando el dramatismo y corte gráfico."
+                )
+            elif desv_brillo >= 40.0:
+                calidad_luz = (
+                    f"Iluminación equilibrada y contraste moderado (desv. {round(desv_brillo, 1)}): "
+                    f"amplia gradación de pasos tonales con grises intermedios continuos y modelado suave de volúmenes."
+                )
+            else:
+                calidad_luz = (
+                    f"Iluminación difusa y bajo contraste (desv. {round(desv_brillo, 1)}): "
+                    f"predominio de grises medios y transiciones suaves, reduciendo la severidad de las sombras."
+                )
+        else:
+            calidad_luz = "Gradación tonal continua con modelado equilibrado entre luces y sombras."
+
         return {
             "esquema_relacional": "Monocromático Acromático (B&N)",
-            #"diferencia_angular_grados": "No aplica (Acromático)", # La quito, pero es correcto lo que dice
             "marco_teorico": "Ansel Adams",
             "significado_cultural_psicologico": (
                 "Composición acromática en escala de grises. "
                 "Enfatiza el contraste de luces y sombras, el drama formal y la estructura gráfica."
             ),
-            "clima_temperatura": "Clima acromático / neutro."
+            "calidad_luminica_dureza_contraste": calidad_luz
         }
 
     # Mapeo explícito para la concordancia gramatical
@@ -184,7 +207,7 @@ def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante):
 
     return {
         "esquema_relacional": esquema,
-        "diferencia_angular_grados": round(diff_angulo, 1),
+        "diferencia_angular_grados": f"{round(diff_angulo, 1)}° / Escala 0° a 180°",
         "marco_teorico": marco,
         "significado_cultural_psicologico": diagnostico,
         "clima_temperatura": f"Clima predominantemente {temp_masculina}."
