@@ -137,8 +137,8 @@ def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante):
     if "acromática" in temperatura_dominante.lower():
         return {
             "esquema_relacional": "Monocromático Acromático (B&N)",
-            "diferencia_angular_grados": 0.0,
-            "marco_teorico": "Eva Heller / Ansel Adams",
+            #"diferencia_angular_grados": "No aplica (Acromático)", # La quito, pero es correcto lo que dice
+            "marco_teorico": "Ansel Adams",
             "significado_cultural_psicologico": (
                 "Composición acromática en escala de grises. "
                 "Enfatiza el contraste de luces y sombras, el drama formal y la estructura gráfica."
