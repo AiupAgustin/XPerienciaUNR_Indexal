@@ -20,22 +20,61 @@ from core.dimensiones.dimension_pragmatica.semiotica_agentiva import analizar_se
 
 # FUNCION AUXILIAR PARA CALCULAR SIMETRÍA CENTRAL (usada en funciones de checkbox 1)
 def _calcular_simetria_central(imagen_path: str) -> dict:
-    """Calcula la simetría de la imagen respecto al centro vertical."""
+    """
+    Calcula la simetría estructural y el equilibrio de masas visuales
+    respecto al eje central vertical usando bordes (Canny) y momentos de masa.
+    """
     img = imread_unicode(imagen_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         return {"error": "No se pudo cargar la imagen para simetría"}
         
     h, w = img.shape
-    mitad_izq = img[:, :w//2]
-    mitad_der = cv2.flip(img[:, w//2:], 1)
+    
+    # 1. Filtro y detección de bordes estructurales (peso visual y morfología)
+    blurred = cv2.GaussianBlur(img, (7, 7), 0)
+    edges = cv2.Canny(blurred, 50, 150)
+    
+    mitad_izq = edges[:, :w//2]
+    mitad_der = cv2.flip(edges[:, w//2:], 1)
     
     min_w = min(mitad_izq.shape[1], mitad_der.shape[1])
-    diferencia = cv2.absdiff(mitad_izq[:, :min_w], mitad_der[:, :min_w])
+    mitad_izq = mitad_izq[:, :min_w]
+    mitad_der = mitad_der[:, :min_w]
     
-    simetria = 1.0 - (float(np.mean(diferencia)) / 255.0)
+    # 2. Simetría morfológica (coincidencia de contornos estructurales)
+    interseccion = np.logical_and(mitad_izq > 0, mitad_der > 0).sum()
+    total_bordes = (mitad_izq > 0).sum() + (mitad_der > 0).sum()
+    
+    if total_bordes > 0:
+        simetria_estructural = (2.0 * interseccion) / float(total_bordes)
+    else:
+        simetria_estructural = 1.0
+
+    # 3. Centro de masa visual (evalúa inclinación del peso compositivo)
+    M = cv2.moments(edges)
+    if M["m00"] > 0:
+        centro_x = M["m10"] / M["m00"]
+        desviacion_eje = abs(centro_x - (w / 2.0)) / (w / 2.0)  # 0.0 centrado, 1.0 extremo
+    else:
+        desviacion_eje = 0.0
+
+    # Ponderación integral: morfología de bordes + equilibrio de centro de masas
+    balance_masas = max(0.0, 1.0 - (desviacion_eje * 1.5))
+    indice_final = (simetria_estructural * 0.4) + (balance_masas * 0.6)
+    indice_final = round(float(np.clip(indice_final, 0.0, 1.0)), 2)
+
+    # Clasificación estricta según leyes de balance compositivo
+    if indice_final >= 0.78 and desviacion_eje < 0.08:
+        estado = "Equilibrio simétrico"
+    elif indice_final >= 0.55 and desviacion_eje < 0.18:
+        estado = "Equilibrio asimétrico"
+    else:
+        estado = "Asimetría dinámica"
+
     return {
-        "indice_simetria": round(simetria, 2),
-        "estado": "Equilibrio simétrico" if simetria > 0.70 else "Asimetría dinámica"
+        "indice_simetria": indice_final,
+        "desviacion_centro_masa": round(desviacion_eje, 3),
+        "estado": estado
     }
 
 # FUNCIÓN QUE SE ASOCIA AL CHECKBOX 1 (composición visual)
