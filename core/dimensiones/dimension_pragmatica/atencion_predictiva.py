@@ -7,20 +7,28 @@ from pathlib import Path
 from servicios.config import imread_unicode
 
 def calcular_salience_map(imagen_path: str):
-    """Calcula el mapa de saliencia visual usando el algoritmo de OpenCV."""
+    """Calcula el mapa de saliencia combinando contraste espectral y atracción lumínica."""
     img = imread_unicode(imagen_path)
     if img is None:
         return None, None
 
-    # Algoritmo de saliencia espectral de OpenCV
+    # 1. Saliencia espectral (textura y bordes anómalos)
     saliency = cv2.saliency.StaticSaliencySpectralResidual_create()
-    success, saliency_map = saliency.computeSaliency(img)
-
+    success, sal_spectral = saliency.computeSaliency(img)
     if not success:
         return None, None
 
-    # Normalizar a rango 0-255
-    saliency_map = (saliency_map * 255).astype("uint8")
+    sal_spectral = (sal_spectral * 255).astype("uint8")
+
+    # 2. Vector de luminancia (altas luces / brillo real)
+    gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # 3. Fusión ponderada: 60% saliencia espectral + 40% atracción por altas luces
+    saliency_combinada = cv2.addWeighted(sal_spectral, 0.6, gris, 0.4, 0)
+    
+    # Suavizado para consolidar manchas continuas de atención
+    saliency_map = cv2.GaussianBlur(saliency_combinada, (9, 9), 0)
+
     return img, saliency_map
 
 
@@ -43,14 +51,23 @@ def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "ou
     m_h, m_w = h // 2, w // 2
     margin_h, margin_w = h // 4, w // 4
 
+    # En lugar de np.mean simple (que castiga zonas con sombras profundas),
+    # medimos la densidad de energía/atención del top 20% más saliente de cada región
+    def energia_caliente(roi):
+        if roi.size == 0:
+            return 0.0
+        corte = np.percentile(roi, 80)
+        puntos_altos = roi[roi >= corte]
+        return float(np.mean(puntos_altos)) if puntos_altos.size > 0 else 0.0
+
     # ROI Central (el 50% central de la imagen)
-    q_centro = np.mean(saliency_map[margin_h : h - margin_h, margin_w : w - margin_w])
+    q_centro = energia_caliente(saliency_map[margin_h : h - margin_h, margin_w : w - margin_w])
     
-    # Cuadrantes periféricos
-    q_sup_izq = np.mean(saliency_map[0:m_h, 0:m_w])
-    q_sup_der = np.mean(saliency_map[0:m_h, m_w:w])
-    q_inf_izq = np.mean(saliency_map[m_h:h, 0:m_w])
-    q_inf_der = np.mean(saliency_map[m_h:h, m_w:w])
+    # Cuadrantes periféricos basados en picos de saliencia
+    q_sup_izq = energia_caliente(saliency_map[0:m_h, 0:m_w])
+    q_sup_der = energia_caliente(saliency_map[0:m_h, m_w:w])
+    q_inf_izq = energia_caliente(saliency_map[m_h:h, 0:m_w])
+    q_inf_der = energia_caliente(saliency_map[m_h:h, m_w:w])
 
     cuadrantes = {
         "Superior Izquierdo": q_sup_izq,
@@ -79,20 +96,26 @@ def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "ou
         else:
             recorrido_sugerido = "Atención distribuida en la periferia de la composición."
 
-    # En lugar de 1 solo píxel (sensible a ruido), buscamos el centro de masa de la zona de mayor saliencia
-    # Aplicamos un umbral para quedarnos solo con el top 10% de áreas más calientes
-    umbral_corte = int(np.percentile(saliency_map, 90))
+    # En lugar de promediar toda la imagen (que sesga al centro vacío), 
+    # aislamos los cúmulos calientes y calculamos el centroide del núcleo dominante
+    umbral_corte = int(np.percentile(saliency_map, 92))
     _, thresh = cv2.threshold(saliency_map, umbral_corte, 255, cv2.THRESH_BINARY)
     
-    # Si la imagen tiene zonas calientes claras
-    M = cv2.moments(thresh)
-    if M["m00"] > 0:
-        # Centroide ponderado de las zonas de mayor intensidad visual
-        center_x = int(M["m10"] / M["m00"])
-        center_y = int(M["m01"] / M["m00"])
+    contornos, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if contornos:
+        # Tomamos el contorno de mayor masa/área caliente (núcleo del punctum real)
+        c_max = max(contornos, key=cv2.contourArea)
+        M = cv2.moments(c_max)
+        if M["m00"] > 0:
+            center_x = int(M["m10"] / M["m00"])
+            center_y = int(M["m01"] / M["m00"])
+        else:
+            # Si el contorno es muy concentrado o puntual
+            center_x, center_y = int(c_max[0][0][0]), int(c_max[0][0][1])
     else:
-        # Fallback si no supera el umbral: usamos minMaxLoc sobre imagen desenfocada
-        saliency_suave = cv2.GaussianBlur(saliency_map, (21, 21), 0)
+        # Fallback: máximo local de saliencia con suavizado
+        saliency_suave = cv2.GaussianBlur(saliency_map, (15, 15), 0)
         _, _, _, (center_x, center_y) = cv2.minMaxLoc(saliency_suave)
 
     # Evaluamos posición del centroide usando división por tercios (3x3 grid)
