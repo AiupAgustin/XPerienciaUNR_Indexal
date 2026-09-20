@@ -113,23 +113,67 @@ def ejec_composicion_visual(imagen_path: str) -> dict:
             "con ligeras asimetrías o diagonales secundarias."
         )
 
-    # 3. Formateo de presentación para el reporte (preservando res_simetria original)
-    res_simetria_vista = dict(res_simetria) if isinstance(res_simetria, dict) else res_simetria
-
-    if isinstance(res_simetria_vista, dict):
-        if "indice_simetria" in res_simetria_vista and isinstance(res_simetria_vista["indice_simetria"], (int, float)):
-            res_simetria_vista["indice_simetria"] = f"{round(res_simetria_vista['indice_simetria'], 2)} / Escala 0 a 1"
+    # 3. Formateo de presentación para el reporte con ortografía y tildes
+    balance_vista = {}
+    if isinstance(res_simetria, dict):
+        if "indice_simetria" in res_simetria:
+            val = res_simetria["indice_simetria"]
+            balance_vista["Índice de Simetría"] = f"{round(val, 2)} / Escala 0 a 1" if isinstance(val, (int, float)) else val
         
-        if "desviacion_centro_masa" in res_simetria_vista and isinstance(res_simetria_vista["desviacion_centro_masa"], (int, float)):
-            res_simetria_vista["desviacion_centro_masa"] = f"{round(res_simetria_vista['desviacion_centro_masa'], 3)} / Escala 0 a 0.5"
+        if "desviacion_centro_masa" in res_simetria:
+            val = res_simetria["desviacion_centro_masa"]
+            balance_vista["Desviación Centro de Masa"] = f"{round(val, 3)} / Escala 0 a 0.5" if isinstance(val, (int, float)) else val
+
+        if "estado" in res_simetria:
+            balance_vista["Estado de Simetría"] = res_simetria["estado"]
+            
+        for k, v in res_simetria.items():
+            if k not in ["estado", "indice_simetria", "desviacion_centro_masa"]:
+                balance_vista[k] = v
+    else:
+        balance_vista = res_simetria
+
+    # Formateo de etiquetas para Kandinsky (incluyendo sus métricas internas)
+    kandinsky_vista = {}
+    if isinstance(res_kandinsky, dict):
+        mapa_kandinsky = {
+            "clasificacion_kandinsky": "Clasificación (Kandinsky)",
+            "analisis_semiotico": "Análisis Semiótico",
+            "metricas": "Métricas Estructurales"
+        }
+        
+        mapa_metricas = {
+            "total_lineas_detectadas": "Total de Líneas Detectadas",
+            "porcentaje_diagonales_45_135": "Porcentaje de Diagonales (45° a 135°)",
+            "porcentaje_estaticas_0_90": "Porcentaje de Estáticas (0° a 90°)"
+        }
+
+        for k, v in res_kandinsky.items():
+            etiqueta = mapa_kandinsky.get(k, k)
+            if k == "metricas" and isinstance(v, dict):
+                metricas_formateadas = {}
+                for mk, mv in v.items():
+                    etiqueta_metrica = mapa_metricas.get(mk, mk)
+                    # Formateo opcional con '%' si es porcentaje flotante
+                    if "porcentaje" in mk and isinstance(mv, (int, float)):
+                        metricas_formateadas[etiqueta_metrica] = f"{round(mv, 2)}%"
+                    else:
+                        metricas_formateadas[etiqueta_metrica] = mv
+                kandinsky_vista[etiqueta] = metricas_formateadas
+            else:
+                kandinsky_vista[etiqueta] = v
+    else:
+        kandinsky_vista = res_kandinsky
 
     return {
         "status": "success",
         "checkbox": "cb1_composicion_visual",
-        "bloque": "1. Composición Visual",
-        "analisis_estabilidad_vs_conflicto": diagnostico,
-        "tension_y_lineas": res_kandinsky,
-        "balance_simetrico": res_simetria_vista
+        "bloque": "A. Composición Visual",
+        "analisis_estabilidad_vs_conflicto": {
+            "Análisis de Estabilidad vs. Conflicto": diagnostico
+        },
+        "tension_y_lineas": kandinsky_vista,
+        "balance_simetrico": balance_vista
     }
 
 # FUNCION QUE SE ASOCIA AL CHECKBOX 2 ( paleta cromática)
@@ -153,7 +197,7 @@ def ejec_paleta_cromatica(imagen_path: str) -> dict:
     return {
         "status": "success",
         "checkbox": "cb2_paleta_cromatica",
-        "bloque": "2. Paleta Cromática",
+        "bloque": "B. Paleta Cromática",
         "paleta_kmeans": paleta,
         "atributos_luminancia_y_temperatura": atributos,
         "analisis_semiotico_color": semiotica
@@ -185,9 +229,9 @@ def ejec_iluminacion_y_punctum(imagen_path: str, categoria_pieza: str = "general
             heatmap_clean = "Mapa de calor no generado"
 
         punto_quiebre = {
-            "punto_entrada": desc_zonas.get("punto_entrada_visual", "Centro compositivo"),
-            "zonas_calientes": desc_zonas.get("zonas_calientes", "Área central"),
-            "mapa_de_calor_saliencia": heatmap_clean
+            "Punto de Entrada": desc_zonas.get("punto_entrada_visual", "Centro compositivo"),
+            "Área de Mayor Atracción Lumínica": desc_zonas.get("zonas_calientes", "Área central"),
+            "Mapa de Calor de Saliencia": heatmap_clean
         }
 
     # 3. Diagnóstico de Anacronismos
@@ -195,15 +239,17 @@ def ejec_iluminacion_y_punctum(imagen_path: str, categoria_pieza: str = "general
 
     return {
         "status": "success",
-        "bloque": "3. Iluminación y Punctum",
+        "bloque": "C. Iluminación y Punctum",
         "checkbox": "cb3_iluminacion",
         "sistema_zonas_adams": {
-            "evaluacion_rango_dinamico": res_adams.get("evaluacion_rango_dinamico", res_adams.get("veredicto")),
-            "descripcion": res_adams.get("descripcion"),
-            "distribucion": res_adams.get("distribucion_completa", {})
+            "Evaluación Rango Dinámico": res_adams.get("evaluacion_rango_dinamico", res_adams.get("veredicto")),
+            "Descripción": res_adams.get("descripcion"),
+            "Distribución": res_adams.get("distribucion_completa", {})
         },
         "quiebre_optico_saliencia": punto_quiebre,
-        "analisis_anacronismos": diagnostico_anacronismos
+        "analisis_anacronismos": {
+            "Análisis de Anacronismos": diagnostico_anacronismos
+        }
     }
 
 # FUNCION QUE SE ASOCIA AL CHECKBOX 4 (semiotica de la imagen)
@@ -230,7 +276,7 @@ def ejec_semiotica_de_la_imagen(imagen_path: str, categoria_pieza: str = "genera
     return {
         "status": "success",
         "checkbox": "cb4_semiotica_imagen",
-        "bloque": "4. Semiótica de la Imagen",
+        "bloque": "D. Semiótica de la Imagen",
         "marco_teorico": [
             "Charles Sanders Peirce (Tricotomía del Signo: Ícono, Índice, Símbolo)",
             "Ferdinand de Saussure (Significante / Significado)",
@@ -238,9 +284,9 @@ def ejec_semiotica_de_la_imagen(imagen_path: str, categoria_pieza: str = "genera
             "Umberto Eco (Códigos y Convenciones Culturales)"
         ],
         "desglose_semiotico": {
-            "analisis_iconico_denotativo": res_iconico.get("resultado", {}),
-            "analisis_indicial_materialidad": res_indicial.get("resultado", {}),
-            "analisis_simbolico_cultural": res_simbolico.get("resultado", {})
+            "Análisis Icónico / Denotativo": res_iconico.get("resultado", {}),
+            "Análisis Indicial / Materialidad": res_indicial.get("resultado", {}),
+            "Análisis Simbólico / Cultural": res_simbolico.get("resultado", {})
         }
     }
 
@@ -299,19 +345,32 @@ def ejec_retorica_visual(imagen_path: str, categoria_pieza: str = "general") -> 
     if isinstance(res_vlm, dict) and "error" in res_vlm:
         return res_vlm
 
+    # Extraemos el contenido crudo del VLM
+    datos_vlm = res_vlm.get("analisis_retorica_visual", res_vlm.get("resultado", {}))
+
+    # Mapeamos a claves con tildes, mayúsculas y preposiciones
+    vlm_formateado = {
+        "Análisis de Retórica Visual": {
+            "Diagnóstico de Figura Dominante": datos_vlm.get("diagnostico_figura_dominante", ""),
+            "Operación de Escala y Desproporción": datos_vlm.get("operacion_escala_y_desproporcion", ""),
+            "Colisión / Amontonamiento de Signos": datos_vlm.get("colision_amontonamiento_signos", ""),
+            "Fundamentación Teórica": datos_vlm.get("fundamentacion_teorica", "")
+        }
+    } if isinstance(datos_vlm, dict) else datos_vlm
+
     return {
         "status": "success",
         "checkbox": "cb5_retorica_visual",
-        "bloque": "5. Retórica Visual",
+        "bloque": "E. Retórica Visual",
         "marco_teorico": [
             "Roland Barthes (Retórica e interacción Texto-Imagen)",
             "Figuras Retóricas Clásicas (Metáfora, Hipérbole por escala, Antítesis)",
             "Carlos Scolari / Oscar Traversa (Condensados de pantalla, hipermediación)"
         ],
         "desglose_retorico": {
-            "mensaje_linguistico_barthes": res_barthes.get("resultado", {}),
-            "estructura_paneles_y_formato": res_secuencia.get("resultado", {}),
-            "diagnostico_figuras_y_condensacion": res_vlm.get("resultado", res_vlm)
+            "Mensaje Lingüístico (Barthes)": res_barthes.get("resultado", {}),
+            "Estructura de Paneles y Formato": res_secuencia.get("resultado", {}),
+            "Diagnóstico de Figuras y Condensación": vlm_formateado
         }
     }
 
@@ -362,18 +421,32 @@ def ejec_contexto_y_denotacion(imagen_path: str, categoria_pieza: str = "general
     if isinstance(res_vlm, dict) and "error" in res_vlm:
         return res_vlm
 
+    # Mapeo de la salida del VLM (Bloque 2)
+    datos_vlm = res_vlm.get("reporte_contexto_y_denotacion", res_vlm.get("resultado", {}))
+    if isinstance(datos_vlm, dict) and "reporte_contexto_y_denotacion" in datos_vlm:
+        datos_vlm = datos_vlm["reporte_contexto_y_denotacion"]
+
+    vlm_formateado = {
+        "Reporte de Contexto y Denotación": {
+            "Nivel Denotativo Literal": datos_vlm.get("nivel_denotativo_literal", ""),
+            "Nivel Connotativo de Fondo": datos_vlm.get("nivel_connotativo_de_fondo", ""),
+            "Síntesis de Dimensiones de Morris": datos_vlm.get("sintesis_dimensiones_morris", ""),
+            "Síntesis de Niveles Clave": datos_vlm.get("sintesis_niveles_clave", "")
+        }
+    } if isinstance(datos_vlm, dict) else datos_vlm
+
     return {
         "status": "success",
         "checkbox": "cb6_contexto_denotacion",
-        "bloque": "6. Contexto y Denotación",
+        "bloque": "F. Contexto y Denotación",
         "marco_teorico": [
             "Charles Morris (Síntesis de dimensiones: Sintáctica, Semántica, Pragmática)",
             "Roland Barthes (Nivel Denotativo vs. Nivel Connotativo)",
             "Semiótica Agentiva (Clima, emoción y acción provocada)"
         ],
         "desglose_integrador": {
-            "semiotica_agentiva_pragmatica": res_agentiva.get("resultado", {}),
-            "reporte_denotacion_connotacion": res_vlm.get("resultado", res_vlm)
+            "Semiótica Agentiva y Pragmática": res_agentiva.get("resultado", {}),
+            "Reporte de Denotación y Connotación": vlm_formateado
         }
     }
 

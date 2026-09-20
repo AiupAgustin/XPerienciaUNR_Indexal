@@ -59,11 +59,14 @@ def analizar_semiotica_iconica(imagen_path: str, categoria: str = "general") -> 
     
     if "error" in resultado_vlm:
         return resultado_vlm
-        
-    
+
+    resultado_formateado = {
+        "Análisis Denotativo": resultado_vlm.get("analisis_denotativo", "")
+    }
+
     return {
         "status": "success",
         "metrica": "Semiótica Icónica (Peirce)",
         "categoria_evaluada": categoria,
-        "resultado": resultado_vlm
+        "resultado": resultado_formateado
     }

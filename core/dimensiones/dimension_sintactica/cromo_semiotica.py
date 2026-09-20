@@ -160,13 +160,13 @@ def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante, desv_brillo=N
             calidad_luz = "Gradación tonal continua con modelado equilibrado entre luces y sombras."
 
         return {
-            "esquema_relacional": "Monocromático Acromático (B&N)",
-            "marco_teorico": "Ansel Adams",
-            "significado_cultural_psicologico": (
+            "Esquema Relacional": "Monocromático Acromático (B&N)",
+            "Marco Teórico": "Ansel Adams",
+            "Significado Cultural / Psicológico": (
                 "Composición acromática en escala de grises. "
                 "Enfatiza el contraste de luces y sombras, el drama formal y la estructura gráfica."
             ),
-            "calidad_luminica_dureza_contraste": calidad_luz
+            "Calidad Lumínica / Contraste": calidad_luz
         }
 
     # Mapeo explícito para la concordancia gramatical
@@ -206,9 +206,9 @@ def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante, desv_brillo=N
         diagnostico = "Diversidad cromática estimulante. Adecuada para composiciones complejas, narrativa social o gráfica publicitaria dinámicas."
 
     return {
-        "esquema_relacional": esquema,
-        "diferencia_angular_grados": f"{round(diff_angulo, 1)}° / Escala 0° a 180°",
-        "marco_teorico": marco,
-        "significado_cultural_psicologico": diagnostico,
-        "clima_temperatura": f"Clima predominantemente {temp_masculina}."
+        "Esquema Relacional": esquema,
+        "Diferencia Angular": f"{round(diff_angulo, 1)}° / Escala 0° a 180°",
+        "Marco Teórico": marco,
+        "Significado Cultural / Psicológico": diagnostico,
+        "Clima de Temperatura": f"Clima predominantemente {temp_masculina}."
     }

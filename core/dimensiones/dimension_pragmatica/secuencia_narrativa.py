@@ -89,9 +89,9 @@ def analizar_secuencia_narrativa(imagen_path: str) -> dict:
         "status": "success",
         "metrica": "Secuencia Narrativa (Pragmática)",
         "resultado": {
-            "estructura_formativa": tipo_pieza,
-            "flujo_ojo_en_tiempo": flujo_tiempo,
-            "aplicacion_narrativa_sugerida": aplicacion_sugerida,
-            "paneles_o_secciones_detectadas": paneles_detectados
+            "Estructura Formativa": tipo_pieza,
+            "Flujo del Ojo en el Tiempo": flujo_tiempo,
+            "Aplicación Narrativa Sugerida": aplicacion_sugerida,
+            "Paneles o Secciones Detectadas": paneles_detectados
         }
     }

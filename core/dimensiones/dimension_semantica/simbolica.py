@@ -70,10 +70,20 @@ def analizar_semiotica_simbolica(imagen_path: str, categoria: str = "general") -
     
     if "error" in resultado_vlm:
         return resultado_vlm
-        
+
+    datos_simbolicos = resultado_vlm.get("analisis_simbolico", {})
+
+    resultado_formateado = {
+        "Análisis Simbólico": {
+            "Contexto Argentina": datos_simbolicos.get("contexto_argentina", ""),
+            "Contexto Latinoamérica": datos_simbolicos.get("contexto_latam", ""),
+            "Contexto Global": datos_simbolicos.get("contexto_global", "")
+        }
+    }
+
     return {
         "status": "success",
         "metrica": "Semiótica Simbólica (Peirce)",
         "categoria_evaluada": categoria,
-        "resultado": resultado_vlm
+        "resultado": resultado_formateado
     }

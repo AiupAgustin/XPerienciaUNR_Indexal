@@ -65,11 +65,20 @@ def analizar_semiotica_indicial(imagen_path: str, categoria: str = "general") ->
     # Propagación de errores
     if "error" in resultado_vlm:
         return resultado_vlm
-        
-    
+
+    datos_indiciales = resultado_vlm.get("analisis_indicial", {})
+
+    resultado_formateado = {
+        "Análisis Indicial": {
+            "Técnica de Origen": datos_indiciales.get("tecnica_origen", ""),
+            "Soporte y Textura": datos_indiciales.get("soporte_y_textura", ""),
+            "Pistas de Producción": datos_indiciales.get("pistas_produccion", "")
+        }
+    }
+
     return {
         "status": "success",
         "metrica": "Semiótica Indicial y Materialidad (Peirce)",
         "categoria_evaluada": categoria,
-        "resultado": resultado_vlm
+        "resultado": resultado_formateado
     }

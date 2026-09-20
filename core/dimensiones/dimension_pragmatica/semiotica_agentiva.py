@@ -63,11 +63,20 @@ def analizar_semiotica_agentiva(imagen_path: str, categoria: str = "general") ->
     # Manejo de error retornado por el conector
     if "error" in resultado_vlm:
         return resultado_vlm
-        
-    
+
+    datos_agentivos = resultado_vlm.get("analisis_agentivo", {})
+
+    resultado_formateado = {
+        "Análisis Agentivo": {
+            "Clima": datos_agentivos.get("clima", ""),
+            "Emoción": datos_agentivos.get("emocion", ""),
+            "Acción Provocada": datos_agentivos.get("accion_provocada", "")
+        }
+    }
+
     return {
         "status": "success",
         "metrica": "Semiótica Agentiva (Pragmática)",
         "categoria_evaluada": categoria,
-        "resultado": resultado_vlm
+        "resultado": resultado_formateado
     }

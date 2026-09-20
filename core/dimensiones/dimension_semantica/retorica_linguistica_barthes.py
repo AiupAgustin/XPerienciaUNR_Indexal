@@ -66,10 +66,21 @@ def analizar_retorica_barthes(imagen_path: str, categoria: str = "general") -> d
     # Propagación de errores
     if "error" in resultado_vlm:
         return resultado_vlm
-        
+
+    datos_barthes = resultado_vlm.get("analisis_barthes", {})
+
+    resultado_formateado = {
+        "Análisis de Barthes": {
+            "Texto Principal": datos_barthes.get("texto_principal", ""),
+            "Textos Secundarios": datos_barthes.get("textos_secundarios", ""),
+            "Función Lingüística": datos_barthes.get("funcion_linguistica", ""),
+            "Análisis Retórico": datos_barthes.get("analisis_retorico", "")
+        }
+    }
+
     return {
         "status": "success",
         "metrica": "Retórica y Lingüística (Roland Barthes)",
         "categoria_evaluada": categoria,
-        "resultado": resultado_vlm
+        "resultado": resultado_formateado
     }
