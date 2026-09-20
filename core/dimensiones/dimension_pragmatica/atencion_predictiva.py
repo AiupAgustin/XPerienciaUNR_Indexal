@@ -7,12 +7,12 @@ from pathlib import Path
 from servicios.config import imread_unicode
 
 def calcular_salience_map(imagen_path: str):
-    """Calcula el mapa de saliencia combinando contraste espectral y atracción lumínica."""
+    """Calcula el mapa de saliencia combinando contraste espectral y atracción lumínica focal."""
     img = imread_unicode(imagen_path)
     if img is None:
         return None, None
 
-    # 1. Saliencia espectral (textura y bordes anómalos)
+    # 1. Saliencia espectral (texturas, bordes y anomalías visuales)
     saliency = cv2.saliency.StaticSaliencySpectralResidual_create()
     success, sal_spectral = saliency.computeSaliency(img)
     if not success:
@@ -20,14 +20,15 @@ def calcular_salience_map(imagen_path: str):
 
     sal_spectral = (sal_spectral * 255).astype("uint8")
 
-    # 2. Vector de luminancia (altas luces / brillo real)
+    # 2. Luminancia ponderada con estiramiento de contraste
     gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    
-    # 3. Fusión ponderada: 60% saliencia espectral + 40% atracción por altas luces
-    saliency_combinada = cv2.addWeighted(sal_spectral, 0.6, gris, 0.4, 0)
+    gris_norm = cv2.normalize(gris, None, 0, 255, cv2.NORM_MINMAX)
+
+    # 3. Fusión: 75% saliencia espectral (sujeto/figura) + 25% luminancia
+    saliency_combinada = cv2.addWeighted(sal_spectral, 0.75, gris_norm, 0.25, 0)
     
     # Suavizado para consolidar manchas continuas de atención
-    saliency_map = cv2.GaussianBlur(saliency_combinada, (9, 9), 0)
+    saliency_map = cv2.GaussianBlur(saliency_combinada, (15, 15), 0)
 
     return img, saliency_map
 
@@ -35,7 +36,7 @@ def calcular_salience_map(imagen_path: str):
 def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "output/heatmaps") -> dict:
     """
     Subcapa Atención Predictiva (Pragmática):
-    Genera la imagen con overlay del heatmap y la descripción textual de zonas.
+    Genera la imagen con overlay del heatmap y la descripción textual coherente de zonas.
     """
     img, saliency_map = calcular_salience_map(imagen_path)
 
@@ -47,122 +48,90 @@ def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "ou
 
     h, w = saliency_map.shape
 
-    # Definición de Región Central vs Periferia
-    m_h, m_w = h // 2, w // 2
-    margin_h, margin_w = h // 4, w // 4
-
-    # En lugar de np.mean simple (que castiga zonas con sombras profundas),
-    # medimos la densidad de energía/atención del top 20% más saliente de cada región
-    def energia_caliente(roi):
-        if roi.size == 0:
-            return 0.0
-        corte = np.percentile(roi, 80)
-        puntos_altos = roi[roi >= corte]
-        return float(np.mean(puntos_altos)) if puntos_altos.size > 0 else 0.0
-
-    # ROI Central (el 50% central de la imagen)
-    q_centro = energia_caliente(saliency_map[margin_h : h - margin_h, margin_w : w - margin_w])
+    # 1. Localización del Núcleo Focal Primario (Punto de Entrada / Punctum)
+    saliency_blur = cv2.GaussianBlur(saliency_map, (21, 21), 0)
     
-    # Cuadrantes periféricos basados en picos de saliencia
-    q_sup_izq = energia_caliente(saliency_map[0:m_h, 0:m_w])
-    q_sup_der = energia_caliente(saliency_map[0:m_h, m_w:w])
-    q_inf_izq = energia_caliente(saliency_map[m_h:h, 0:m_w])
-    q_inf_der = energia_caliente(saliency_map[m_h:h, m_w:w])
-
-    cuadrantes = {
-        "Superior Izquierdo": q_sup_izq,
-        "Superior Derecho": q_sup_der,
-        "Inferior Izquierdo": q_inf_izq,
-        "Inferior Derecho": q_inf_der
-    }
-
-    # Determinar si el centro domina sobre los cuadrantes periféricos
-    promedio_periferia = np.mean(list(cuadrantes.values()))
-    
-    # Si la intensidad media del centro supera sensiblemente a la periferia
-    es_foco_central = q_centro > (promedio_periferia * 1.25)
-
-    if es_foco_central:
-        zona_caliente_desc = "la zona Central / Núcleo de la composición."
-        recorrido_sugerido = "Atención concentrada de manera focalizada y radial hacia el centro de la pieza."
-    else:
-        zona_caliente = max(cuadrantes, key=cuadrantes.get)
-        zona_caliente_desc = f"el cuadrante {zona_caliente}."
-        
-        if q_sup_izq > q_inf_der and q_sup_der > q_inf_izq:
-            recorrido_sugerido = "Se observa una tendencia de recorrido en Z (lectura horizontal superior y barrido hacia la base)."
-        elif q_sup_izq > q_sup_der and q_inf_izq > q_inf_der:
-            recorrido_sugerido = "Se observa una tendencia de recorrido en F (escaneo vertical primario en el margen izquierdo)."
-        else:
-            recorrido_sugerido = "Atención distribuida en la periferia de la composición."
-
-    # En lugar de promediar toda la imagen (que sesga al centro vacío), 
-    # aislamos los cúmulos calientes y calculamos el centroide del núcleo dominante
-    umbral_corte = int(np.percentile(saliency_map, 92))
-    _, thresh = cv2.threshold(saliency_map, umbral_corte, 255, cv2.THRESH_BINARY)
+    # Umbral dinámico en el percentil 92 para aislar los focos reales
+    corte_top = np.percentile(saliency_blur, 92)
+    _, thresh = cv2.threshold(saliency_blur, int(corte_top), 255, cv2.THRESH_BINARY)
     
     contornos, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     if contornos:
-        # Tomamos el contorno de mayor masa/área caliente (núcleo del punctum real)
-        c_max = max(contornos, key=cv2.contourArea)
-        M = cv2.moments(c_max)
+        # Ponderamos contornos por: Área * (Intensidad media dentro del contorno ^ 1.5)
+        mejor_cnt = None
+        max_score = -1.0
+        
+        for cnt in contornos:
+            mascara_cnt = np.zeros_like(saliency_blur)
+            cv2.drawContours(mascara_cnt, [cnt], -1, 255, -1)
+            media_val = cv2.mean(saliency_blur, mask=mascara_cnt)[0]
+            area_cnt = cv2.contourArea(cnt)
+            score = area_cnt * (media_val ** 1.5)
+            if score > max_score:
+                max_score = score
+                mejor_cnt = cnt
+                
+        M = cv2.moments(mejor_cnt)
         if M["m00"] > 0:
             center_x = int(M["m10"] / M["m00"])
             center_y = int(M["m01"] / M["m00"])
         else:
-            # Si el contorno es muy concentrado o puntual
-            center_x, center_y = int(c_max[0][0][0]), int(c_max[0][0][1])
+            center_x, center_y = int(mejor_cnt[0][0][0]), int(mejor_cnt[0][0][1])
     else:
-        # Fallback: máximo local de saliencia con suavizado
-        saliency_suave = cv2.GaussianBlur(saliency_map, (15, 15), 0)
-        _, _, _, (center_x, center_y) = cv2.minMaxLoc(saliency_suave)
+        _, _, _, (center_x, center_y) = cv2.minMaxLoc(saliency_blur)
 
-    # Evaluamos posición del centroide usando división por tercios (3x3 grid)
+    # 2. Clasificación espacial por tercios (3x3 grid)
     tercio_w = w // 3
     tercio_h = h // 3
 
-    pos_y_texto = "superior" if center_y < tercio_h else ("inferior" if center_y > 2 * tercio_h else "central")
-    pos_x_texto = "izquierda" if center_x < tercio_w else ("derecha" if center_x > 2 * tercio_w else "central")
+    pos_y_idx = 0 if center_y < tercio_h else (2 if center_y > 2 * tercio_h else 1)
+    pos_x_idx = 0 if center_x < tercio_w else (2 if center_x > 2 * tercio_w else 1)
+
+    nombres_y = ["superior", "central", "inferior"]
+    nombres_x = ["izquierda", "central", "derecha"]
+
+    pos_y_texto = nombres_y[pos_y_idx]
+    pos_x_texto = nombres_x[pos_x_idx]
 
     if pos_y_texto == "central" and pos_x_texto == "central":
         punto_entrada_desc = "El punto focal primario se ubica en el centro de la composición."
+        zona_caliente_desc = "la zona Central / Núcleo de la composición."
     elif pos_y_texto == "central":
         punto_entrada_desc = f"El punto focal primario se ubica en el área central-{pos_x_texto} de la composición."
+        zona_caliente_desc = f"el área Central {pos_x_texto.capitalize()} de la pieza."
     elif pos_x_texto == "central":
         punto_entrada_desc = f"El punto focal primario se ubica en el área {pos_y_texto}-central de la composición."
+        zona_caliente_desc = f"el sector {pos_y_texto.capitalize()} Central de la composición."
     else:
         punto_entrada_desc = f"El punto focal primario se ubica en el área {pos_y_texto}-{pos_x_texto} de la composición."
+        zona_caliente_desc = f"el cuadrante {pos_y_texto.capitalize()} {pos_x_texto.capitalize()}."
 
-    # Construir Descripciones Finales
-    desc_zonas_calientes = f"La mayor concentración de atención visual (zona caliente) se localiza en {zona_caliente_desc}"
-    
-    # Detección inteligente de Zonas Frías
-    val_min = min(cuadrantes.values())
-    cuadrantes_frios = [q for q, val in cuadrantes.items() if val <= val_min * 1.15]
+    # 3. Detección de Zonas Frías y Recorrido general
+    m_h, m_w = h // 2, w // 2
+    cuadrantes = {
+        "Superior Izquierdo": float(np.mean(saliency_map[0:m_h, 0:m_w])),
+        "Superior Derecho": float(np.mean(saliency_map[0:m_h, m_w:w])),
+        "Inferior Izquierdo": float(np.mean(saliency_map[m_h:h, 0:m_w])),
+        "Inferior Derecho": float(np.mean(saliency_map[m_h:h, m_w:w]))
+    }
 
-    if len(cuadrantes_frios) > 1:
-        if "Inferior Izquierdo" in cuadrantes_frios and "Inferior Derecho" in cuadrantes_frios:
-            desc_zonas_frias = "Las áreas de menor saliencia o zonas frías se concentran de manera simétrica en la franja inferior (base de la composición)."
-        elif "Superior Izquierdo" in cuadrantes_frios and "Superior Derecho" in cuadrantes_frios:
-            desc_zonas_frias = "Las áreas de menor saliencia o zonas frías se concentran de manera simétrica en la franja superior de la composición."
-        else:
-            nombres_frios = " e ".join([q.lower() for q in cuadrantes_frios])
-            desc_zonas_frias = f"Las áreas de menor saliencia o zonas frías se distribuyen entre los cuadrantes {nombres_frios}."
+    zona_fria = min(cuadrantes, key=cuadrantes.get)
+    desc_zonas_frias = f"Las áreas de menor saliencia o zonas frías predominan en el cuadrante {zona_fria}."
+
+    if cuadrantes["Superior Izquierdo"] >= cuadrantes["Inferior Derecho"]:
+        recorrido_sugerido = "Se observa una tendencia de recorrido en Z (lectura horizontal superior y barrido hacia la base)."
     else:
-        zona_fria = min(cuadrantes, key=cuadrantes.get)
-        desc_zonas_frias = f"Las áreas de menor saliencia o zonas frías predominan en el cuadrante {zona_fria}."
+        recorrido_sugerido = "Atención focalizada con dispersión radial hacia las zonas secundarias."
 
-    # Generación de la Imagen con Overlay en memoria RAM (sin tocar disco)
+    desc_zonas_calientes = f"La mayor concentración de atención visual (zona caliente) se localiza en {zona_caliente_desc}"
+
+    # 4. Generación del Heatmap con Overlay
     heatmap_color = cv2.applyColorMap(saliency_map, cv2.COLORMAP_JET)
     overlay = cv2.addWeighted(img, 0.6, heatmap_color, 0.4, 0)
 
     success, buffer = cv2.imencode(".jpg", overlay, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
-    if success:
-        b64_str = base64.b64encode(buffer).decode("utf-8")
-        heatmap_data_uri = f"data:image/jpeg;base64,{b64_str}"
-    else:
-        heatmap_data_uri = ""
+    heatmap_data_uri = f"data:image/jpeg;base64,{base64.b64encode(buffer).decode('utf-8')}" if success else ""
 
     return {
         "status": "success",
