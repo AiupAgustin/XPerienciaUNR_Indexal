@@ -1090,15 +1090,15 @@ def render_galeria():
 
             .hero-badge {{
                 color: #0057FF;
-                font-family: 'Orbitron', sans-serif !important;
+                font-family: 'Space Grotesk', sans-serif !important;
                 font-size: 14px;
-                font-weight: 700;
+                font-weight: 500;
                 letter-spacing: 4.2px;
                 margin: 0;
             }}
 
             .hero-title {{
-                color: #111111;
+                color: #0B1020;
                 font-size: 64px;
                 font-weight: 700;
                 line-height: 1;
@@ -1324,7 +1324,7 @@ def render_galeria():
             <div class="hero-text-block">
                 <div class="hero-badge" translate="no">DIAGNÓSTICO VISUAL ASISTIDO POR IA</div>
                 <h1 class="hero-title" translate="no">Galería de<br>imágenes<br>analizadas</h1>
-                <div class="hero-subtitle" translate="no">SEMIÓTICO · TÉCNICO · PDF</div>
+                <div class="hero-subtitle" translate="no">COMPOSICIÓN · COLOR · SEMIÓTICA · RETÓRICA</div>
             </div>
             <div class="hero-action-block">
                 <button class="hero-btn-action" id="btnAnalizarImagen">
