@@ -3,6 +3,7 @@ import base64
 import copy
 import io
 import os
+import urllib.request
 import streamlit as st
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
@@ -12,40 +13,58 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
 
 # Funcion auxiliar para tamaño de imagenes verticales (y en general) en los reportes
-def escalar_preview_proporcional(b64_str: str, max_w: int = 560, max_h: int = 360) -> str:
+def escalar_preview_proporcional(
+    origen_img: str, max_w: int = 520, max_h: int = 360
+) -> tuple[str, int, int]:
+    """Escala la imagen respetando estrictamente su aspect ratio dentro de una caja
+
+    segura para A4 (máx 520x360 px). Soporta Base64 y URLs remotas. Devuelve:
+    (imagen_b64_data_uri, ancho_calculado, alto_calculado)
     """
-    Escala la imagen respetando estrictamente su aspect ratio dentro de una caja
-    segura para A4 (560px ancho x 360px alto), evitando desbordes y saltos de página en xhtml2pdf.
-    """
-    if not b64_str or not isinstance(b64_str, str):
-        return b64_str
+    if not origen_img or not isinstance(origen_img, str):
+        return origen_img, max_w, max_h
 
     try:
-        # Extraemos los datos crudos en base64 quitando el prefijo data URI si existe
-        if "," in b64_str:
-            _, datos_b64 = b64_str.split(",", 1)
-        elif b64_str.startswith("http://") or b64_str.startswith("https://"):
-            return b64_str  # Si es URL remota sin procesar, se retorna intacta
-        else:
-            datos_b64 = b64_str
+        # Caso 1: URL remota (ej. Supabase)
+        if origen_img.startswith("http://") or origen_img.startswith("https://"):
+            req = urllib.request.Request(
+                origen_img, headers={"User-Agent": "Mozilla/5.0"}
+            )
+            with urllib.request.urlopen(req) as resp:
+                img_bytes = resp.read()
 
-        img_bytes = base64.b64decode(datos_b64)
+        # Caso 2: Base64 o Data URI
+        else:
+            if "," in origen_img:
+                _, datos_b64 = origen_img.split(",", 1)
+            else:
+                datos_b64 = origen_img
+            img_bytes = base64.b64decode(datos_b64)
+
         with Image.open(io.BytesIO(img_bytes)) as img:
             img = img.convert("RGB")
-            
-            # thumbnail() NO deforma: calcula la proporción exacta para que
-            # quepa dentro de max_w x max_h sin estirar ni achatarse
+
+            # thumbnail() ajusta la imagen en memoria respetando estrictamente el aspect ratio
             img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
-            
+            ancho_final, alto_final = img.size
+
             buffer = io.BytesIO()
-            img.save(buffer, format="JPEG", quality=90)
+            img.save(buffer, format="JPEG", quality=88)
             buffer.seek(0)
-            
-            b64_escalado = base64.b64encode(buffer.read()).decode("utf-8").replace("\n", "").replace("\r", "")
-            return f"data:image/jpeg;base64,{b64_escalado}"
+
+            b64_escalado = (
+                base64.b64encode(buffer.read())
+                .decode("utf-8")
+                .replace("\n", "")
+                .replace("\r", "")
+            )
+            data_uri = f"data:image/jpeg;base64,{b64_escalado}"
+
+            return data_uri, ancho_final, alto_final
+
     except Exception as e:
-        print(f"Aviso: no se pudo reescalar el preview ({e}), usando imagen original.")
-        return b64_str
+        print(f"Aviso: error reescalando preview ({e}), usando original.")
+        return origen_img, max_w, max_h
     
 def imagen_a_base64(ruta_imagen: str) -> str:
     """Lee una imagen del disco y la convierte a data URI en base64, o devuelve la URL/Base64 intacta."""
@@ -158,10 +177,14 @@ def renderizar_reporte_html(master_json: dict) -> str:
     bloques = datos_render.get("bloques", [])
     convertir_todas_las_imagenes_a_b64(bloques)
 
-    # Reescalado proporcional en píxeles reales exclusivo para la presentación visual
-    if metadata.get("imagen_b64"):
-        metadata["imagen_b64"] = escalar_preview_proporcional(metadata["imagen_b64"], max_w=560, max_h=360)
-    
+    # Reescalado proporcional y cálculo de dimensiones exactas
+    img_origen = metadata.get("imagen_b64") or metadata.get("imagen_url") or metadata.get("imagen_path")
+    if img_origen:
+        b64_escalado, ancho, alto = escalar_preview_proporcional(img_origen, max_w=520, max_h=360)
+        metadata["imagen_b64"] = b64_escalado
+        metadata["img_width"] = ancho
+        metadata["img_height"] = alto
+
     return template.render(
         metadata=metadata,
         bloques=bloques

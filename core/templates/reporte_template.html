@@ -57,11 +57,10 @@
             letter-spacing: 0.5px;
         }
         .preview-img {
-            width: 100%;
-            max-width: 520px;
-            height: auto;
             border-radius: 6px;
             border: 1px solid #cbd5e1;
+            display: block;
+            margin: 0 auto;
         }
 
         .bloque-card {
@@ -177,7 +176,11 @@
     {% if metadata.imagen_b64 or metadata.imagen_url or metadata.imagen_path %}
     <div class="preview-container">
         <div class="preview-title">Pieza Gráfica en Análisis</div>
-        <img src="{{ metadata.imagen_b64 or metadata.imagen_url or metadata.imagen_path }}" class="preview-img" width="520" alt="Pieza a analizar" />
+        <img src="{{ metadata.imagen_b64 or metadata.imagen_url or metadata.imagen_path }}" 
+     class="preview-img" 
+     width="{{ metadata.img_width | default(520) }}" 
+     height="{{ metadata.img_height | default(360) }}" 
+     alt="Pieza a analizar" />
     </div>
     {% endif %}
 
