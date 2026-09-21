@@ -17,6 +17,7 @@ from core.dimensiones.dimension_semantica.simbolica import analizar_semiotica_si
 from core.dimensiones.dimension_pragmatica.secuencia_narrativa import analizar_secuencia_narrativa
 from core.dimensiones.dimension_pragmatica.atencion_predictiva import analizar_atencion_predictiva
 from core.dimensiones.dimension_pragmatica.semiotica_agentiva import analizar_semiotica_agentiva
+from graficos.tarjetas_cromaticas import renderizar_tarjetas_html
 
 # FUNCION AUXILIAR PARA CALCULAR SIMETRÍA CENTRAL (usada en funciones de checkbox 1)
 def _calcular_simetria_central(imagen_path: str) -> dict:
@@ -194,11 +195,15 @@ def ejec_paleta_cromatica(imagen_path: str) -> dict:
     desv_brillo = atributos.get("desviacion_brillo_std", None)
     semiotica = evaluar_semiotica_cromatica(paleta, temp_dom, desv_brillo=desv_brillo)
 
+    # Generamos el componente visual de tarjetas
+    html_tarjetas = renderizar_tarjetas_html(paleta)
+
     return {
         "status": "success",
         "checkbox": "cb2_paleta_cromatica",
         "bloque": "B. Paleta Cromática",
-        "paleta_kmeans": paleta,
+        "paleta_kmeans": paleta,  # Mantiene los datos puros para exportación o APIs
+        "tarjetas_paleta_html": html_tarjetas,  # Bloque visual para el reporte
         "atributos_luminancia_y_temperatura": atributos,
         "analisis_semiotico_color": semiotica
     }

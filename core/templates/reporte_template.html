@@ -194,6 +194,10 @@
             {% endif %}
         </div>
 
+        {% if b.tarjetas_paleta_html %}
+            {{ b.tarjetas_paleta_html | safe }}
+        {% endif %}
+
         <table class="tabla-resultados">
             <thead>
                 <tr>

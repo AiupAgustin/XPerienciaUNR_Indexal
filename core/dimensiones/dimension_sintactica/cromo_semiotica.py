@@ -5,52 +5,83 @@ from servicios.config import imread_unicode
 def obtener_paleta_cromatica(imagen_path, cantidad_colores=3):
     """
     Extrae la paleta cromática exacta de una imagen usando K-Means Clustering.
-    Redimensiona la pieza para optimizar el rendimiento del servidor local.
-    
-    Devuelve una lista de diccionarios con los códigos HEX y RGB de los 3 colores dominantes.
+    Devuelve los colores dominantes con su código HEX, RGB, porcentaje de ocupación
+    y rol semiótico/compositivo (Dominante, Secundario, Acento).
     """
     try:
-        # Leemos la imagen con OpenCV
         img = imread_unicode(imagen_path)
         if img is None:
             return {"error": f"No se pudo cargar la imagen desde la ruta: {imagen_path}"}
             
-        # OpenCV lee en BGR, lo pasamos a RGB que es el estándar de diseño
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        
-        # Redimensionamos a 150x150 píxeles para que el cálculo matemático sea más rápido
         img_small = cv2.resize(img_rgb, (150, 150), interpolation=cv2.INTER_AREA)
         
-        # Transformamos la matriz de la imagen en una lista plana de píxeles (R, G, B)
         pixeles = img_small.reshape(-1, 3)
-        pixeles = np.float32(pixeles) # OpenCV exige que los datos sean de tipo flotante para K-Means
+        pixeles = np.float32(pixeles)
         
-        # Definimos los criterios de parada (10 iteraciones o precisión de 1.0)
         criterios = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
         
-        # Ejecutamos K-Means para agrupar los colores en 'k' clusters (familias)
-        _, _, centros = cv2.kmeans(
+        # Detectamos colores únicos reales para no forzar k de más si es monocromo o bicolor puro
+        colores_unicos = np.unique(pixeles, axis=0)
+        k_real = min(cantidad_colores, len(colores_unicos))
+        
+        # Obtenemos las etiquetas (labels) para contar los píxeles de cada color
+        _, etiquetas, centros = cv2.kmeans(
             pixeles, 
-            cantidad_colores, 
+            k_real, 
             None, 
             criterios, 
             10, 
             cv2.KMEANS_RANDOM_CENTERS
         )
         
-        # Convertimos los centros de los grupos a números enteros (0-255)
         centros = np.uint8(centros)
-        
-        # Iteramos los colores encontrados y guardamos tanto HEX como RGB en diccionarios
+        conteo_pixeles = np.bincount(etiquetas.flatten(), minlength=k_real)
+        total_pixeles = len(pixeles)
+
+        # Emparejamos cada color con su frecuencia y omitimos clusters vacíos si los hubiera
+        roles = ["Dominante", "Secundario", "Acento", "Neutro", "Complementario"]
+        clusters = []
+        for i in range(k_real):
+            if conteo_pixeles[i] > 0:
+                pct = round((conteo_pixeles[i] / total_pixeles) * 100, 1)
+                r, g, b = int(centros[i][0]), int(centros[i][1]), int(centros[i][2])
+                clusters.append({
+                    "rgb": (r, g, b),
+                    "hex": f"#{r:02x}{g:02x}{b:02x}".upper(),
+                    "porcentaje": pct,
+                    "conteo": conteo_pixeles[i]
+                })
+
+        # Ordenar por porcentaje descendente (el más presente es Dominante)
+        clusters.sort(key=lambda x: x["conteo"], reverse=True)
+
+        # Fusionar colores que sean indistinguibles para el ojo humano (distancia RGB < 18)
+        UMBRAL_DISTANCIA = 18.0
+        clusters_filtrados = []
+
+        for c in clusters:
+            r1, g1, b1 = c["rgb"]
+            fusionado = False
+            for f in clusters_filtrados:
+                r2, g2, b2 = f["rgb"]
+                distancia = ((r1 - r2)**2 + (g1 - g2)**2 + (b1 - b2)**2) ** 0.5
+                if distancia < UMBRAL_DISTANCIA:
+                    f["conteo"] += c["conteo"]
+                    f["porcentaje"] = round(f["porcentaje"] + c["porcentaje"], 1)
+                    fusionado = True
+                    break
+            if not fusionado:
+                clusters_filtrados.append(c)
+
+        # Reasignar roles a los clusters que quedaron realmente diferenciados
         paleta_completa = []
-        for color in centros:
-            # Convertimos a int nativo de Python para que no dé problemas al serializar
-            r, g, b = int(color[0]), int(color[1]), int(color[2])
-            hex_color = f"#{r:02x}{g:02x}{b:02x}"
-            
+        for idx, item in enumerate(clusters_filtrados):
             paleta_completa.append({
-                "hex": hex_color,
-                "rgb": (r, g, b)
+                "rol": roles[idx] if idx < len(roles) else f"Color {idx + 1}",
+                "hex": item["hex"],
+                "rgb": item["rgb"],
+                "porcentaje": int(round(item["porcentaje"]))
             })
             
         return paleta_completa
@@ -186,6 +217,16 @@ def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante, desv_brillo=N
         pixel_hsv = cv2.cvtColor(pixel_rgb, cv2.COLOR_RGB2HSV)[0][0]
         hue_deg = float(pixel_hsv[0]) * 2.0  # Mapeo a 360°
         hues.append(hue_deg)
+
+    # Si la pieza tiene un único color representativo
+    if len(hues) < 2:
+        return {
+            "Esquema Relacional": "Monocromático Puro",
+            "Diferencia Angular": "0.0°",
+            "Marco Teórico": "Johannes Itten / Kandinsky",
+            "Significado Cultural / Psicológico": "Composición monocromática absoluta. Máxima homogeneidad, sobriedad y foco en el valor tonal.",
+            "Clima de Temperatura": f"Clima predominantemente {temp_masculina}."
+        }
 
     # Evaluamos la relación angular entre los dos colores más prominentes
     h1, h2 = hues[0], hues[1]
