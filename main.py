@@ -5736,7 +5736,7 @@ def render_reportes():
         ALTURAS_POR_MODULO = {
             "composicion_visual": 1050,  # NO TOCAR VALOR
             "paleta_cromatica": 1200,     # NO TOCAR VALOR
-            "iluminacion": 1450,          # NO TOCAR VALOR
+            "iluminacion": 1650,          # NO TOCAR VALOR
             "semiotica_imagen": 1200,     # NO TOCAR VALOR
             "retorica_visual": 1300,      # NO TOCAR VALOR
             "contexto_denotacion": 1350,  # Nivel literal y contexto

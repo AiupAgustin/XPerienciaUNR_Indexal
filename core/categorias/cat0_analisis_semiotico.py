@@ -18,7 +18,7 @@ from core.dimensiones.dimension_pragmatica.secuencia_narrativa import analizar_s
 from core.dimensiones.dimension_pragmatica.atencion_predictiva import analizar_atencion_predictiva
 from core.dimensiones.dimension_pragmatica.semiotica_agentiva import analizar_semiotica_agentiva
 from graficos.tarjetas_cromaticas import renderizar_tarjetas_html
-
+from graficos.grafico_zonas import generar_grafico_zonas_base64
 # FUNCION AUXILIAR PARA CALCULAR SIMETRÍA CENTRAL (usada en funciones de checkbox 1)
 def _calcular_simetria_central(imagen_path: str) -> dict:
     """
@@ -210,14 +210,17 @@ def ejec_paleta_cromatica(imagen_path: str) -> dict:
 
 # FUNCION QUE SE ASOCIA AL CHECKBOX 3 (iluminación)
 def ejec_iluminacion_y_punctum(imagen_path: str, categoria_pieza: str = "general") -> dict:
-    # 1. Sistema de Zonas de Ansel Adams (Rango Dinámico y Exposición)
+    # 1. Sistema de Zonas de Ansel Adams
     res_adams = analizar_luminosidad_completa(imagen_path)
     if isinstance(res_adams, dict) and "error" in res_adams:
         return res_adams
 
+    # Generamos el gráfico en Base64 con los datos calculados
+    datos_zonas = res_adams.get("distribucion_completa", {})
+    grafico_zonas_html = generar_grafico_zonas_base64(datos_zonas)
+
     # 2. Localización del Quiebre Óptico / Saliencia Predictiva
     res_atencion = analizar_atencion_predictiva(imagen_path)
-    
     punto_quiebre = {}
     if isinstance(res_atencion, dict) and res_atencion.get("status") == "success" and "resultado" in res_atencion:
         resultado_atencion = res_atencion["resultado"]
@@ -246,10 +249,12 @@ def ejec_iluminacion_y_punctum(imagen_path: str, categoria_pieza: str = "general
         "status": "success",
         "bloque": "C. Iluminación y Punctum",
         "checkbox": "cb3_iluminacion",
+        # 1. El gráfico va al inicio, como componente visual destacado:
+        "grafico_zonas_html": grafico_zonas_html,
+        # 2. La tabla solo contiene los textos analíticos (sin fila de distribución):
         "sistema_zonas_adams": {
             "Evaluación Rango Dinámico": res_adams.get("evaluacion_rango_dinamico", res_adams.get("veredicto")),
-            "Descripción": res_adams.get("descripcion"),
-            "Distribución": res_adams.get("distribucion_completa", {})
+            "Descripción": res_adams.get("descripcion")
         },
         "quiebre_optico_saliencia": punto_quiebre,
         "analisis_anacronismos": {

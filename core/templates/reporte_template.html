@@ -198,6 +198,12 @@
             {{ b.tarjetas_paleta_html | safe }}
         {% endif %}
 
+        {% if b.grafico_zonas_html %}
+            <div style="margin-top: 10px; margin-bottom: 14px; text-align: center;">
+                {{ b.grafico_zonas_html | safe }}
+            </div>
+        {% endif %}
+
         <table class="tabla-resultados">
             <thead>
                 <tr>

@@ -11,3 +11,4 @@ supabase
 transformers
 torch
 torchvision
+matplotlib
