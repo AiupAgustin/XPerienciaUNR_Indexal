@@ -512,288 +512,300 @@ def cargar_galeria_historica():
 # 1. INICIALIZACIÓN SEGURA DE ESTADO (Evita AttributeError)
 # -----------------------------------------------------------------
 if "pantalla_actual" not in st.session_state:
-    st.session_state["pantalla_actual"] = "splash"
+    st.session_state["pantalla_actual"] = "home"
 
 if "filtro_galeria" not in st.session_state:
     st.session_state["filtro_galeria"] = "Todo"
 
+
+
 # -----------------------------------------------------------------
-# PANTALLA 1: SPLASH SCREEN (Logo e Instrucción Cliqueables)
+# PANTALLA 1: HOME
 # -----------------------------------------------------------------
-def render_splash():
+def render_home():
+    # 1. Cargar el logo SVG en base64
+    try:
+        img_src = cargar_svg_base64("assets/iconos/logo_x.svg")
+    except Exception:
+        img_src = ""
+
+    # 2. Inyección de estilos CSS para centrado absoluto
     st.markdown("""
         <style>
-        /* Fondo principal */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+        /* Fondo general */
         .stApp {
             background-color: #0B1020 !important;
         }
         
         header[data-testid="stHeader"] { display: none !important; }
         #MainMenu, footer { visibility: hidden; }
-        .element-container a.anchor-link { display: none !important; }
 
-        /* Centrado absoluto vertical y horizontal */
-        div[data-testid="stAppViewBlockContainer"] {
-            padding-top: 0px !important;
-            margin-top: 0px !important;
-            min-height: 100vh !important;
+        /* Asegurar contenedor padre a 100% de la pantalla */
+        .stApp {
+            height: 100vh !important;
+            overflow: hidden !important;
+        }
+
+        section.main {
+            height: 100vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            padding: 0px !important;
+            overflow: hidden !important;
+        }
+
+        /* Centrado absoluto de block-container según Figma (264px) */
+        .block-container,
+        div[data-testid="stMainBlockContainer"],
+        div[data-testid="block-container"] {
+            max-width: 264px !important;
+            width: 264px !important;
+            padding: 0px !important;
+            margin-top: auto !important;
+            margin-bottom: auto !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: center !important;
             align-items: center !important;
         }
 
-        .block-container {
-            max-width: 400px !important;
-            padding: 0px !important;
-            margin: auto !important;
-        }
-
-        /* Anular gaps/espacios automáticos de Streamlit en Splash */
-        div[data-testid="stVerticalBlock"] > div {
+        [data-testid="stVerticalBlock"] {
             gap: 0px !important;
-            margin-bottom: 0px !important;
-        }
-
-        /* OCULTAR COMPLETAMENTE EL BOTÓN NATIVO DESDE EL INICIO */
-        div.stButton,
-        div[data-testid="stElementContainer"]:has(div.stButton) {
-            display: none !important;
-            visibility: hidden !important;
-            position: absolute !important;
-            top: -9999px !important;
-            left: -9999px !important;
-            width: 0px !important;
-            height: 0px !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-            overflow: hidden !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # 1. LEER Y CONVERTIR EL LOGO A BASE64
-    img_src = cargar_svg_base64("assets/iconos/logo_x.svg")
-
-    # 2. LOGO + TEXTO INTEGRADOS CON 15PX EXACTOS
-    splash_html = f"""
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500&display=swap');
-
-            html, body {{ 
-                margin: 0 !important; 
-                padding: 0 !important; 
-                overflow: hidden !important; 
-                background: transparent !important;
-                height: 100% !important;
-                width: 100% !important;
-                display: flex !important;
-                justify-content: center !important;
-                align-items: center !important;
-            }}
-
-            .splash-wrapper {{
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                width: 100%;
-                user-select: none;
-            }}
-
-            .splash-logo {{
-                width: 229px;
-                height: 229px;
-                cursor: pointer;
-                transition: transform 0.2s ease;
-                display: block;
-            }}
-
-            .splash-logo:hover {{
-                transform: scale(1.03);
-            }}
-
-            .splash-text {{
-                width: 300px;
-                max-width: 100%;
-                color: #808799;
-                font-family: 'Space Grotesk', sans-serif;
-                font-size: 13px;
-                font-weight: 500;
-                letter-spacing: 0.4px;
-                text-align: center;
-                margin-top: 15px; /* Distancia exacta de Figma */
-                cursor: pointer;
-                transition: color 0.2s ease;
-            }}
-
-            .splash-text:hover {{
-                color: #FFFFFF;
-            }}
-        </style>
-
-        <div class="splash-wrapper">
-            <img src="{img_src}" id="splashLogo" class="splash-logo" alt="Indexal Logo">
-            <span id="splashText" class="splash-text">Haga clic en el centro para ingresar</span>
-        </div>
-
-        <script>
-            const parentDoc = window.parent.document;
-            
-            function triggerNavigation() {{
-                const hiddenBtn = parentDoc.querySelector('div.stButton button');
-                if (hiddenBtn) {{
-                    hiddenBtn.click();
-                }}
-            }}
-
-            // Clic en el logo
-            document.getElementById('splashLogo').addEventListener('click', triggerNavigation);
-
-            // Clic en el texto
-            document.getElementById('splashText').addEventListener('click', triggerNavigation);
-        </script>
-    """
-    
-    components.html(splash_html, height=280)
-
-    # 3. EL BOTÓN DISPARADOR CON CARÁCTER INVISIBLE (Cero texto visible al cargar)
-    if st.button("\u200b", key="btn_hidden"):
-        st.session_state["pantalla_actual"] = "home"
-        st.rerun()
-
-# -----------------------------------------------------------------
-# PANTALLA 2: HOME
-# -----------------------------------------------------------------
-def render_home():
-    st.markdown("""
-        <style>
-        /* Importamos Orbitron, Inter y Space Grotesk */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&family=Space+Grotesk:wght@500&display=swap');
-
-        /* Fondo principal */
-        .stApp {
-            background-color: #0B1020 !important;
-        }
-        
-        /* Ocultar header e interfaz por defecto */
-        header[data-testid="stHeader"] {
-            display: none !important;
-        }
-        #MainMenu, footer {visibility: hidden;}
-        .element-container a.anchor-link {display: none !important;}
-        h1 a, h2 a, h3 a {display: none !important;}
-
-        /* Centrado vertical absoluto con Flexbox */
-        div[data-testid="stAppViewBlockContainer"] {
-            padding-top: 0px !important;
-            margin-top: 0px !important;
-            min-height: 100vh !important;
+            width: 100% !important;
             display: flex !important;
             flex-direction: column !important;
-            justify-content: center !important;
+            align-items: center !important;
         }
 
-        /* Contenedor principal */
-        .block-container {
-            max-width: 400px !important;
-            padding-top: 0px !important;
-            padding-bottom: 0px !important;
-            margin: auto !important;
-        }
-
-        /* Reducción de gaps de Streamlit */
         [data-testid="stVerticalBlock"] > div {
-            gap: 0px !important;
+            width: 100% !important;
         }
 
-        /* Título INDEXAL */
-        .title-indexal {
+        /* BLOQUE UNIFICADO DE MARCA */
+        .brand-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100% !important;
+            margin-top: 0px !important;
+            padding-top: 0px !important;
+            margin-bottom: 0px !important;
+            user-select: none;
+        }
+
+        .brand-logo {
+            width: 56px !important;
+            height: 56px !important;
+            min-width: 56px !important;
+            min-height: 56px !important;
+            max-width: 56px !important;
+            max-height: 56px !important;
+            display: block !important;
+            margin: 0 auto 28px auto !important;
+            object-fit: contain !important;
+        }
+
+        /* Título INDEXAL: Orbitron 34px, Regular (400), tracking 2px, margen 28px */
+        .brand-title {
             color: #FFFFFF !important;
             font-family: 'Orbitron', sans-serif !important;
             font-size: 34px !important;
-            font-weight: 700 !important;
-            letter-spacing: 3px !important;
+            font-style: normal !important;
+            font-weight: 400 !important;
+            font-synthesis: none !important;
+            letter-spacing: 2px !important;
+            text-indent: 0px !important;
+            transform: none !important;
+            /* Compensación del tracking de 2px para centrado milimétrico en espejo */
+            margin-right: -2px !important;
+            margin-left: 0px !important;
+            margin-top: 0px !important;
+            margin-bottom: 28px !important;
+            padding: 0 !important;
+            line-height: normal !important;
             text-align: center !important;
+            display: block !important;
+            width: 100% !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+        }
+
+        .brand-subtitle {
+            color: #0057FF !important;
+            font-family: 'Space Grotesk', sans-serif !important;
+            font-size: 13px !important;
+            font-style: normal !important;
+            font-weight: 700 !important;
+            letter-spacing: 1px !important;
+            text-indent: 0px !important;
+            white-space: nowrap !important;
+            /* Compensación milimétrica del tracking de 1px */
+            margin-right: -1px !important;
+            margin-left: 0px !important;
             margin-top: 0px !important;
             margin-bottom: 0px !important;
-            padding-bottom: 0px !important;
-            line-height: 1 !important; /* Mantiene la caja colapsada al texto */
-        }
-
-        /* Subtítulo (Ajuste forzado a 1px) */
-        .subtitle-indexal {
-            color: #668CF2 !important;
-            font-family: 'Space Grotesk', sans-serif !important;
-            font-size: 12px !important;
-            font-weight: 500 !important;
-            letter-spacing: 2px !important;
+            padding: 0 !important;
+            line-height: normal !important;
             text-align: center !important;
-            margin-top: 1px !important; /* Distancia exacta de 1px */
-            margin-bottom: 43px !important;
-            padding-top: 0px !important;
-            line-height: 1 !important;
+            display: block !important;
+            width: max-content !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
         }
 
-        /* Separación de botones */
-        [data-testid="stHorizontalBlock"] {
-            gap: 16px !important;
+        /* Contenedores de botones centrados sin márgenes parásitos de Streamlit */
+        div[data-testid="stElementContainer"]:has(div.stButton) {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
         }
 
-        /* ESTILOS DEL BOTÓN "ANALIZAR IMAGEN" */
+        div.stButton {
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            margin: 0 auto !important;
+        }
+
+        /* Botón Principal (Analizar imagen): 194x56px con peso tipográfico real */
         div.stButton > button[kind="primary"] {
-            background-color: #0057FF !important; /* <--- Color Hex de Figma */
-            color: #FFFFFF !important;             /* Color del texto */
+            background-color: #0057FF !important;
+            color: #FFFFFF !important;
             border: none !important;
-            border-radius: 8px !important;         /* Radio de esquinas */
-            height: 51px !important;               /* <--- Altura calculada/fijada */
-            padding: 16px 24px !important;         /* <--- Relleno de Figma */
-            font-family: 'Space Grotesk', sans-serif !important; 
-            font-size: 14.5px !important;
-            font-weight: 500 !important;           /* Peso/Grosor de la fuente */
-        }
-
-        /* ESTILOS DEL BOTÓN "EXPLORAR GALERIA" */
-        div.stButton > button[kind="secondary"] {
-            background-color: #262B38 !important; /* <--- Hex exacto */
-            color: #BFC4D1 !important;            /* <--- Color de texto exacto */
-            border: 1px solid #4D5261 !important;  /* <--- Borde exacto */
-            border-radius: 8px !important;
-            height: 51px !important;
-            padding: 16px 24px !important;
+            border-radius: 10px !important;
+            height: 56px !important;
+            min-height: 56px !important;
+            max-height: 56px !important;
+            width: 194px !important;
+            min-width: 194px !important;
+            max-width: 194px !important;
+            padding: 0px 36px !important;
+            box-sizing: border-box !important;
             font-family: 'Space Grotesk', sans-serif !important;
-            font-size: 14.5px !important;
-            font-weight: 500 !important;
+            font-size: 16px !important;
+            font-style: normal !important;
+            font-weight: 700 !important;
+            line-height: 20px !important;
+            letter-spacing: 0px !important;
+            white-space: nowrap !important;
+            margin-top: 64px !important;
+            margin-bottom: 28px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            transition: background-color 0.2s ease, transform 0.1s ease !important;
+            -webkit-font-smoothing: subpixel-antialiased !important;
         }
 
+        /* Asegurar que ningún span o p interno de Streamlit le baje el peso a la fuente */
+        div.stButton > button[kind="primary"] * {
+            font-family: 'Space Grotesk', sans-serif !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            line-height: 20px !important;
+            letter-spacing: 0px !important;
+            color: #FFFFFF !important;
+        }
+
+        div.stButton > button[kind="primary"]:hover {
+            background-color: #0043C7 !important;
+        }
+
+        div.stButton > button[kind="primary"]:active {
+            transform: scale(0.98) !important;
+        }
+
+        /* Botón Secundario (Explorar galería): neutralización absoluta de marcos de Streamlit */
+        div.stButton > button[kind="secondary"],
+        div.stButton > button[kind="secondary"]:hover,
+        div.stButton > button[kind="secondary"]:active,
+        div.stButton > button[kind="secondary"]:focus,
+        div.stButton > button[kind="secondary"]:focus-visible {
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            border-width: 0px !important;
+            box-shadow: none !important;
+            outline: none !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: unset !important;
+            width: auto !important;
+            min-width: unset !important;
+            margin: 0 auto !important;
+            cursor: pointer !important;
+        }
+
+        /* Tipografía, color #999EAD y subrayado idéntico a Figma */
+        div.stButton > button[kind="secondary"] p,
+        div.stButton > button[kind="secondary"] span,
+        div.stButton > button[kind="secondary"] div {
+            color: #999EAD !important;
+            font-family: 'Space Grotesk', sans-serif !important;
+            font-size: 13px !important;
+            font-style: normal !important;
+            font-weight: 500 !important;
+            line-height: 17px !important;
+            text-decoration-line: underline !important;
+            text-decoration-style: solid !important;
+            text-decoration-color: #999EAD !important;
+            text-decoration-thickness: 1px !important;
+            text-underline-offset: 3px !important;
+            text-decoration-skip-ink: auto !important;
+            border: none !important;
+            border-width: 0px !important;
+            outline: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            transition: color 0.2s ease, text-decoration-color 0.2s ease !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+        }
+
+        div.stButton > button[kind="secondary"]:hover p,
+        div.stButton > button[kind="secondary"]:hover span,
+        div.stButton > button[kind="secondary"]:hover div {
+            color: #FFFFFF !important;
+            text-decoration-color: #FFFFFF !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
-    # -----------------------------------------------------------------
-    # ELEMENTO 1: TÍTULO Y SUBTÍTULO
-    # -----------------------------------------------------------------
-    st.markdown("""
-        <div translate="no">
-            <h1 class="title-indexal">INDEXAL</h1>
-            <p class="subtitle-indexal">ANÁLISIS VISUAL ASISTIDO POR IA</p>
+    # 3. Logo + Título + Bajada en una sola caja flex
+    img_tag = f'<img src="{img_src}" class="brand-logo" alt="Indexal">' if img_src else ''
+    st.markdown(f"""
+        <div class="brand-unit" translate="no">
+            {img_tag}
+            <div class="brand-title">INDEXAL</div>
+            <div class="brand-subtitle">DIAGNÓSTICO VISUAL ASISTIDO POR IA</div>
         </div>
     """, unsafe_allow_html=True)
 
-    # -----------------------------------------------------------------
-    # ELEMENTO 2: BOTONES
-    # -----------------------------------------------------------------
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Analizar imagen", use_container_width=True, type="primary"):
-            st.session_state["pantalla_actual"] = "analizar"
-            st.rerun()
-    with col2:
-        if st.button("Explorar galería", use_container_width=True, type="secondary"):
-            st.session_state["pantalla_actual"] = "galeria"
-            st.rerun()
+    # 4. Botones con ancho exacto gobernado por CSS
+    if st.button("Analizar imagen", use_container_width=False, type="primary"):
+        st.session_state["pantalla_actual"] = "analizar"
+        st.rerun()
+
+    if st.button("Explorar galería", use_container_width=False, type="secondary"):
+        st.session_state["pantalla_actual"] = "galeria"
+        st.rerun()
 
 # -----------------------------------------------------------------
-# PANTALLA 3: GALERÍA DE IMÁGENES ANALIZADAS 
+# PANTALLA 2: GALERÍA DE IMÁGENES ANALIZADAS 
 # -----------------------------------------------------------------
 
 def render_galeria():
@@ -1518,7 +1530,7 @@ def render_galeria():
     components.html(galeria_unificada_html, height=altura_total_componente, scrolling=False)
 
 # -----------------------------------------------------------------
-# PANTALLA 4: NUEVO ANÁLISIS
+# PANTALLA 3: NUEVO ANÁLISIS
 # -----------------------------------------------------------------
 def render_analizar():
 
@@ -4226,7 +4238,7 @@ def render_analizar():
             st.session_state["modal_terminos_activo"] = False
             st.rerun()
 # -----------------------------------------------------------------
-# PANTALLA 5: REPORTES
+# PANTALLA 4: REPORTES
 # -----------------------------------------------------------------
 
 def render_reportes():
@@ -5798,11 +5810,9 @@ def render_reportes():
 # -----------------------------------------------------------------
 # CONTROLADOR PRINCIPAL DE VISTAS
 # -----------------------------------------------------------------
-pantalla = st.session_state.get("pantalla_actual", "splash")
+pantalla = st.session_state.get("pantalla_actual", "home")
 
-if pantalla == "splash":
-    render_splash()
-elif pantalla == "home":
+if pantalla == "home":
     render_home()
 elif pantalla == "galeria":
     render_galeria()
