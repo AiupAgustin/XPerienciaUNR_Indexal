@@ -10,7 +10,25 @@ Renderizado 1:1 con las especificaciones exactas del inspector de Figma:
 
 import io
 import base64
+from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+
+# Ubicación de assets/fonts navegando desde este archivo:
+# Buscamos la raíz del proyecto subiendo desde la ubicación de este script
+_current = Path(__file__).resolve().parent
+CARPETA_FUENTES = None
+
+# Buscamos la carpeta assets hasta 4 niveles hacia arriba (cubriendo core/graficos/ o graficos/)
+for _ in range(4):
+    candidata = _current / "assets" / "fonts"
+    if candidata.exists():
+        CARPETA_FUENTES = candidata
+        break
+    _current = _current.parent
+
+# Fallback por si acaso, aunque la lógica de arriba es robusta
+if not CARPETA_FUENTES:
+    CARPETA_FUENTES = Path("assets/fonts").resolve()
 
 
 def _hex_to_rgb(hex_str: str):
@@ -21,40 +39,43 @@ def _hex_to_rgb(hex_str: str):
 
 
 def _cargar_fuentes_sistema(scale: int):
-    """Carga fuentes sans-serif nítidas del sistema (Windows/Linux) con pesos diferenciados."""
+    """Carga Space Grotesk directamente desde assets/fonts, blindando el diseño contra cualquier SO."""
+    tam_bold = int(12 * scale)
+    tam_reg = int(11 * scale)
+
+    # Rutas directas a los archivos empaquetados en el proyecto
+    ruta_bold = CARPETA_FUENTES / "SpaceGrotesk-Bold.ttf"
+    ruta_reg = CARPETA_FUENTES / "SpaceGrotesk-Regular.ttf"
+
     f_bold = None
     f_reg = None
 
-    candidatas_bold = [
-        "C:\\Windows\\Fonts\\segoeuib.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "arialbd.ttf",
-    ]
-    candidatas_reg = [
-        "C:\\Windows\\Fonts\\segoeui.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "arial.ttf",
-    ]
+    # Carga Space Grotesk Bold
+    try:
+        if ruta_bold.exists():
+            f_bold = ImageFont.truetype(str(ruta_bold), tam_bold)
+    except Exception:
+        pass
 
-    # Fuente Bold (12px base)
-    for ruta in candidatas_bold:
-        try:
-            f_bold = ImageFont.truetype(ruta, 12 * scale)
-            break
-        except Exception:
-            continue
+    # Carga Space Grotesk Regular
+    try:
+        if ruta_reg.exists():
+            f_reg = ImageFont.truetype(str(ruta_reg), tam_reg)
+    except Exception:
+        pass
+
+    # Respaldo de emergencia (fallback) por si acaso faltaran los archivos físicos
     if not f_bold:
-        f_bold = ImageFont.load_default()
-
-    # Fuente Regular (11px base según Figma)
-    for ruta in candidatas_reg:
         try:
-            f_reg = ImageFont.truetype(ruta, 11 * scale)
-            break
-        except Exception:
-            continue
+            f_bold = ImageFont.load_default(size=tam_bold)
+        except TypeError:
+            f_bold = ImageFont.load_default()
+
     if not f_reg:
-        f_reg = ImageFont.load_default()
+        try:
+            f_reg = ImageFont.load_default(size=tam_reg)
+        except TypeError:
+            f_reg = ImageFont.load_default()
 
     return f_bold, f_reg
 
@@ -163,7 +184,7 @@ def renderizar_tarjetas_html(paleta: list) -> str:
     ancho_css = (182 * num_cards) + (16 * (num_cards - 1))
 
     return f"""
-    <div style="margin-top: 14px; margin-bottom: 20px; text-align: left;">
-        <img src="data:image/png;base64,{b64_str}" style="width: {ancho_css}px; max-width: 100%; height: auto; display: block;" />
+    <div style="margin-top: 10px; margin-bottom: 16px; text-align: left;">
+        <img src="data:image/png;base64,{b64_str}" width="{ancho_css}" />
     </div>
     """
