@@ -3246,6 +3246,22 @@ def render_analizar():
                             <span class="transversal-text">Referencias históricas</span>
                             <span class="badge-proximamente">Próximamente</span>
                         </div>
+
+                        <div class="transversal-row row-proximamente" id="rowTransversalDetectorIa">
+                            <div class="custom-checkbox">
+                                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                            </div>
+                            <span class="transversal-text">Detector de IA</span>
+                            <span class="badge-proximamente">Próximamente</span>
+                        </div>
+
+                        <div class="transversal-row row-proximamente" id="rowTransversalAltText">
+                            <div class="custom-checkbox">
+                                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                            </div>
+                            <span class="transversal-text">Alt text enriquecido</span>
+                            <span class="badge-proximamente">Próximamente</span>
+                        </div>
                     </div>
 
                     <div class="action-footer-container">
@@ -3780,7 +3796,7 @@ def render_analizar():
     </html>
     """
 
-    components.html(analizar_html, height=2030, scrolling=False)
+    components.html(analizar_html, height=2110, scrolling=False)
 
     # -------------------------------------------------------------------------
     # RECEPTOR NATIVO DE ARCHIVO (OCULTO VISUALMENTE, SIN BASE64 NI LOOPS)
