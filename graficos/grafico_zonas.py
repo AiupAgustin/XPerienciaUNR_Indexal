@@ -159,9 +159,9 @@ def generar_grafico_zonas_base64(distribucion_zonas: dict) -> str:
 
     # Render a memoria en base64
     buffer = io.BytesIO()
-    plt.savefig(buffer, format="png", bbox_inches="tight", pad_inches=0.1)
+    plt.savefig(buffer, format="png", dpi=120, bbox_inches="tight", pad_inches=0.08)
     buffer.seek(0)
-    b64_str = base64.b64encode(buffer.read()).decode("utf-8")
+    b64_str = base64.b64encode(buffer.read()).decode("utf-8").replace("\n", "").replace("\r", "")
     plt.close(fig)
 
-    return f'<img src="data:image/png;base64,{b64_str}" style="width: 100%; max-width: 680px; height: auto; display: block; margin: 16px auto;" />'
+    return f'<img src="data:image/png;base64,{b64_str}" width="560" />'
