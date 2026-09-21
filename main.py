@@ -2173,9 +2173,11 @@ def render_analizar():
 
             .header-badge {{
                 color: #0057FF;
-                font-family: 'Orbitron', sans-serif !important;
+                font-family: 'Space Grotesk', sans-serif !important;
                 font-size: 12px;
-                font-weight: 700;
+                font-style: normal;
+                font-weight: 400;
+                line-height: normal;
                 letter-spacing: 3px;
                 text-transform: uppercase;
                 margin: 0;
