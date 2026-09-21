@@ -1,15 +1,52 @@
 
 import base64
 import copy
+import io
 import os
 import streamlit as st
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+from PIL import Image
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
 
+# Funcion auxiliar para tamaño de imagenes verticales (y en general) en los reportes
+def escalar_preview_proporcional(b64_str: str, max_w: int = 560, max_h: int = 360) -> str:
+    """
+    Escala la imagen respetando estrictamente su aspect ratio dentro de una caja
+    segura para A4 (560px ancho x 360px alto), evitando desbordes y saltos de página en xhtml2pdf.
+    """
+    if not b64_str or not isinstance(b64_str, str):
+        return b64_str
 
+    try:
+        # Extraemos los datos crudos en base64 quitando el prefijo data URI si existe
+        if "," in b64_str:
+            _, datos_b64 = b64_str.split(",", 1)
+        elif b64_str.startswith("http://") or b64_str.startswith("https://"):
+            return b64_str  # Si es URL remota sin procesar, se retorna intacta
+        else:
+            datos_b64 = b64_str
+
+        img_bytes = base64.b64decode(datos_b64)
+        with Image.open(io.BytesIO(img_bytes)) as img:
+            img = img.convert("RGB")
+            
+            # thumbnail() NO deforma: calcula la proporción exacta para que
+            # quepa dentro de max_w x max_h sin estirar ni achatarse
+            img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+            
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=90)
+            buffer.seek(0)
+            
+            b64_escalado = base64.b64encode(buffer.read()).decode("utf-8").replace("\n", "").replace("\r", "")
+            return f"data:image/jpeg;base64,{b64_escalado}"
+    except Exception as e:
+        print(f"Aviso: no se pudo reescalar el preview ({e}), usando imagen original.")
+        return b64_str
+    
 def imagen_a_base64(ruta_imagen: str) -> str:
     """Lee una imagen del disco y la convierte a data URI en base64, o devuelve la URL/Base64 intacta."""
     if not ruta_imagen or not isinstance(ruta_imagen, str):
@@ -120,6 +157,10 @@ def renderizar_reporte_html(master_json: dict) -> str:
         
     bloques = datos_render.get("bloques", [])
     convertir_todas_las_imagenes_a_b64(bloques)
+
+    # Reescalado proporcional en píxeles reales exclusivo para la presentación visual
+    if metadata.get("imagen_b64"):
+        metadata["imagen_b64"] = escalar_preview_proporcional(metadata["imagen_b64"], max_w=560, max_h=360)
     
     return template.render(
         metadata=metadata,
