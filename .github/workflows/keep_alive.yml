@@ -30,7 +30,12 @@ jobs:
               )
               page = context.new_page()
               print(f'Conectando a {URL}...')
-              page.goto(URL, wait_until='networkidle', timeout=60000)
+              try:
+                  page.goto(URL, wait_until='domcontentloaded', timeout=45000)
+              except Exception as e:
+                  print(f'Aviso durante la carga inicial: {e}')
+
+              page.wait_for_timeout(5000)
 
               wake_btn = page.locator('button:has-text(\"Yes, get this app back up\")')
               if wake_btn.count() > 0:
