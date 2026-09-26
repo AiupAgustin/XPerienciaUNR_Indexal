@@ -130,8 +130,12 @@ def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "ou
     heatmap_color = cv2.applyColorMap(saliency_map, cv2.COLORMAP_JET)
     overlay = cv2.addWeighted(img, 0.6, heatmap_color, 0.4, 0)
 
-    success, buffer = cv2.imencode(".jpg", overlay, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
-    heatmap_data_uri = f"data:image/jpeg;base64,{base64.b64encode(buffer).decode('utf-8')}" if success else ""
+    success, buffer = cv2.imencode(".png", overlay)
+    heatmap_data_uri = (
+        f"data:image/png;base64,{base64.b64encode(buffer).decode('utf-8').replace('\n', '').replace('\r', '')}"
+        if success
+        else ""
+    )
 
     return {
         "status": "success",

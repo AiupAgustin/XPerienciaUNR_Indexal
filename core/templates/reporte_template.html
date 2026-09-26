@@ -88,17 +88,28 @@
         .marco-teorico-container {
             margin-bottom: 12px;
         }
-        .tag {
-            display: inline-block;
+        .tabla-tags {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 5px 5px;
+            margin: 0;
+            padding: 0;
+        }
+        .tabla-tags td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0;
+            border: none;
+        }
+        .tag-card {
             background: #eff6ff;
             color: #1d4ed8;
             border: 1px solid #dbeafe;
             border-radius: 4px;
-            padding: 2px 8px;
-            font-size: 10px;
+            padding: 3px 8px;
+            font-size: 9.5px;
             font-weight: 500;
-            margin-right: 4px;
-            margin-bottom: 4px;
+            line-height: 1.3;
         }
 
         .tabla-resultados {
@@ -155,9 +166,8 @@
             text-align: center;
         }
         .img-reporte {
-            width: 100%;
-            max-width: 320px;
-            height: auto;
+            display: block;
+            margin: 0 auto;
             border-radius: 6px;
             border: 1px solid #cbd5e1;
         }
@@ -194,9 +204,19 @@
             
             {% if b.marco_teorico %}
             <div class="marco-teorico-container">
-                {% for item in b.marco_teorico %}
-                    <span class="tag">{{ item }}</span>
-                {% endfor %}
+                <table class="tabla-tags">
+                    {% for par in b.marco_teorico | batch(2, '') %}
+                    <tr>
+                        {% for item in par %}
+                        <td>
+                            {% if item %}
+                                <div class="tag-card">{{ item }}</div>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </table>
             </div>
             {% endif %}
         </div>
@@ -229,7 +249,7 @@
                             <td class="valor-td">
                                 {% if sub_val is string and (sub_val.startswith('data:image') or sub_val.startswith('http://') or sub_val.startswith('https://') or sub_val.lower().endswith('.jpg') or sub_val.lower().endswith('.png') or sub_val.lower().endswith('.jpeg') or sub_val.lower().endswith('.webp')) %}
                                     <div class="img-container">
-                                        <img src="{{ sub_val }}" class="img-reporte">
+                                        <img src="{{ sub_val }}" width="280" class="img-reporte">
                                     </div>
                                 {% elif sub_val is sameas true %}
                                     <span class="badge-status badge-success">Cumple / Alineado</span>
@@ -240,7 +260,7 @@
                                         {% for k, v in sub_val.items() %}
                                             {% if v is string and (v.startswith('data:image') or v.lower().endswith('.jpg') or v.lower().endswith('.png') or v.lower().endswith('.jpeg')) %}
                                                 <div class="img-container">
-                                                    <img src="{{ v }}" class="img-reporte">
+                                                    <img src="{{ v }}" width="280" class="img-reporte">
                                                 </div>
                                             {% elif v is mapping %}
                                                 <div style="margin-bottom: 6px;">
@@ -270,7 +290,7 @@
                             <td class="valor-td">
                                 {% if val is string and (val.startswith('data:image') or val.startswith('http://') or val.startswith('https://') or val.lower().endswith('.jpg') or val.lower().endswith('.png') or val.lower().endswith('.jpeg') or val.lower().endswith('.webp')) %}
                                     <div class="img-container">
-                                        <img src="{{ val }}" class="img-reporte">
+                                        <img src="{{ val }}" width="280" class="img-reporte">
                                     </div>
                                 {% elif val is mapping %}
                                     <div class="json-subblock">
