@@ -1,6 +1,7 @@
 
 import cv2
 import numpy as np
+import re
 from pathlib import Path
 from servicios.config import (consultar_minicpm_v, imread_unicode)
 from core.dimensiones.dimension_sintactica.eidetica_y_tensiones_kandinsky import calcular_tension_kandinsky
@@ -19,6 +20,12 @@ from core.dimensiones.dimension_pragmatica.atencion_predictiva import analizar_a
 from core.dimensiones.dimension_pragmatica.semiotica_agentiva import analizar_semiotica_agentiva
 from graficos.tarjetas_cromaticas import renderizar_tarjetas_html
 from graficos.grafico_zonas import generar_grafico_zonas_base64
+# Analizadores de mapas de calor estandarizados
+from graficos.amarillo_gradiente_cromatico import analizar_gradiente_cromatico
+from graficos.rojo_linea_tension import analizar_lineas_tension
+from graficos.azul_peso_visual import analizar_peso_visual
+
+
 # FUNCION AUXILIAR PARA CALCULAR SIMETRÍA CENTRAL (usada en funciones de checkbox 1)
 def _calcular_simetria_central(imagen_path: str) -> dict:
     """
@@ -82,6 +89,7 @@ def _calcular_simetria_central(imagen_path: str) -> dict:
 def ejec_composicion_visual(imagen_path: str) -> dict:
     res_kandinsky = calcular_tension_kandinsky(imagen_path)
     res_simetria = _calcular_simetria_central(imagen_path)
+    res_atencion = analizar_atencion_predictiva(imagen_path)
     
     # 1. Extraemos métricas para evaluar la estabilidad vs. conflicto dramático
     clasificacion = res_kandinsky.get("clasificacion_kandinsky", "").lower()
@@ -114,7 +122,7 @@ def ejec_composicion_visual(imagen_path: str) -> dict:
             "con ligeras asimetrías o diagonales secundarias."
         )
 
-    # 3. Formateo de presentación para el reporte con ortografía y tildes
+    # 3. Formateo de presentación para el reporte con ortografía y tildes (Balance / Simetría)
     balance_vista = {}
     if isinstance(res_simetria, dict):
         if "indice_simetria" in res_simetria:
@@ -134,7 +142,7 @@ def ejec_composicion_visual(imagen_path: str) -> dict:
     else:
         balance_vista = res_simetria
 
-    # Formateo de etiquetas para Kandinsky (incluyendo sus métricas internas)
+    # 4. Formateo de etiquetas para Kandinsky
     kandinsky_vista = {}
     if isinstance(res_kandinsky, dict):
         mapa_kandinsky = {
@@ -155,7 +163,6 @@ def ejec_composicion_visual(imagen_path: str) -> dict:
                 metricas_formateadas = {}
                 for mk, mv in v.items():
                     etiqueta_metrica = mapa_metricas.get(mk, mk)
-                    # Formateo opcional con '%' si es porcentaje flotante
                     if "porcentaje" in mk and isinstance(mv, (int, float)):
                         metricas_formateadas[etiqueta_metrica] = f"{round(mv, 2)}%"
                     else:
@@ -166,62 +173,8 @@ def ejec_composicion_visual(imagen_path: str) -> dict:
     else:
         kandinsky_vista = res_kandinsky
 
-    return {
-        "status": "success",
-        "checkbox": "cb1_composicion_visual",
-        "bloque": "A. Composición Visual",
-        "analisis_estabilidad_vs_conflicto": {
-            "Análisis de Estabilidad vs. Conflicto": diagnostico
-        },
-        "tension_y_lineas": kandinsky_vista,
-        "balance_simetrico": balance_vista
-    }
-
-# FUNCION QUE SE ASOCIA AL CHECKBOX 2 ( paleta cromática)
-def ejec_paleta_cromatica(imagen_path: str) -> dict:
-    """
-    Combina K-Means, atributos cromaticos (Ansel Adams/Temperatura)
-    y evaluación semiótica (relaciones angulares + Eva Heller/Itten).
-    """
-    paleta = obtener_paleta_cromatica(imagen_path, cantidad_colores=3)
-    atributos = analizar_atributos_cromaticos(imagen_path)
-    
-    if isinstance(paleta, dict) and "error" in paleta:
-        return paleta
-    if isinstance(atributos, dict) and "error" in atributos:
-        return atributos
-
-    temp_dom = atributos["contraste_temperatura"]["temperatura_dominante"]
-    desv_brillo = atributos.get("desviacion_brillo_std", None)
-    semiotica = evaluar_semiotica_cromatica(paleta, temp_dom, desv_brillo=desv_brillo)
-
-    # Generamos el componente visual de tarjetas
-    html_tarjetas = renderizar_tarjetas_html(paleta)
-
-    return {
-        "status": "success",
-        "checkbox": "cb2_paleta_cromatica",
-        "bloque": "B. Paleta Cromática",
-        "paleta_kmeans": paleta,  # Mantiene los datos puros para exportación o APIs
-        "tarjetas_paleta_html": html_tarjetas,  # Bloque visual para el reporte
-        "atributos_luminancia_y_temperatura": atributos,
-        "analisis_semiotico_color": semiotica
-    }
-
-# FUNCION QUE SE ASOCIA AL CHECKBOX 3 (iluminación)
-def ejec_iluminacion_y_punctum(imagen_path: str, categoria_pieza: str = "general") -> dict:
-    # 1. Sistema de Zonas de Ansel Adams
-    res_adams = analizar_luminosidad_completa(imagen_path)
-    if isinstance(res_adams, dict) and "error" in res_adams:
-        return res_adams
-
-    # Generamos el gráfico en Base64 con los datos calculados
-    datos_zonas = res_adams.get("distribucion_completa", {})
-    grafico_zonas_html = generar_grafico_zonas_base64(datos_zonas)
-
-    # 2. Localización del Quiebre Óptico / Saliencia Predictiva
-    res_atencion = analizar_atencion_predictiva(imagen_path)
-    punto_quiebre = {}
+    # 5. Integración de Saliencia / Punto de Entrada (Migrado del anterior Módulo C)
+    datos_saliencia = {}
     if isinstance(res_atencion, dict) and res_atencion.get("status") == "success" and "resultado" in res_atencion:
         resultado_atencion = res_atencion["resultado"]
         desc_zonas = resultado_atencion.get("descripcion_textual_zonas", {})
@@ -236,37 +189,126 @@ def ejec_iluminacion_y_punctum(imagen_path: str, categoria_pieza: str = "general
         else:
             heatmap_clean = "Mapa de calor no generado"
 
-        punto_quiebre = {
+        datos_saliencia = {
             "Punto de Entrada": desc_zonas.get("punto_entrada_visual", "Centro compositivo"),
             "Área de Mayor Atracción Lumínica": desc_zonas.get("zonas_calientes", "Área central"),
-            "Mapa de Calor de Saliencia": heatmap_clean
         }
 
-    # 3. Diagnóstico de Anacronismos
-    diagnostico_anacronismos = "No se detectan anacronismos visuales o discontinuidades temporales en la pieza."
+    # 6. Generación de mapas de calor estandarizados (Amarillo, Rojo, Azul)
+    mapas_composicion = []
+
+    # Verificamos si la pieza es acromática usando los atributos cromáticos existentes
+    attrs_croma = analizar_atributos_cromaticos(imagen_path)
+    es_monocromo = (
+        isinstance(attrs_croma, dict)
+        and attrs_croma.get("contraste_temperatura", {}).get("temperatura_dominante") == "Acromática / Neutra"
+    )
+
+    # A) Módulo Amarillo (Gradiente Cromático): solo si NO es monocroma
+    if not es_monocromo:
+        res_amarillo = analizar_gradiente_cromatico(imagen_path)
+        if isinstance(res_amarillo, dict) and res_amarillo.get("status") == "success":
+            overlay_amarillo = res_amarillo["resultado"].get("path_imagen_overlay", "")
+            if overlay_amarillo:
+                mapas_composicion.append({
+                    "nombre": "Gradiente Cromático",
+                    "color": "#FEF9C3",
+                    "imagen": overlay_amarillo
+                })
+
+    # B) Módulo Rojo (Líneas de Tensión)
+    res_rojo = analizar_lineas_tension(imagen_path)
+    if isinstance(res_rojo, dict) and res_rojo.get("status") == "success":
+        overlay_rojo = res_rojo["resultado"].get("path_imagen_overlay", "")
+        if overlay_rojo:
+            mapas_composicion.append({
+                "nombre": "Líneas de Tensión",
+                "color": "#C94B63",
+                "imagen": overlay_rojo
+            })
+
+    # C) Módulo Azul (Peso Visual)
+    res_azul = analizar_peso_visual(imagen_path)
+    if isinstance(res_azul, dict) and res_azul.get("status") == "success":
+        overlay_azul = res_azul["resultado"].get("path_imagen_overlay", "")
+        if overlay_azul:
+            mapas_composicion.append({
+                "nombre": "Peso Visual",
+                "color": "#0057FF",
+                "imagen": overlay_azul
+            })
 
     return {
         "status": "success",
-        "bloque": "C. Iluminación y Punctum",
-        "checkbox": "cb3_iluminacion",
-        # 1. El gráfico va al inicio, como componente visual destacado:
-        "grafico_zonas_html": grafico_zonas_html,
-        # 2. La tabla solo contiene los textos analíticos (sin fila de distribución):
-        "sistema_zonas_adams": {
-            "Evaluación Rango Dinámico": res_adams.get("evaluacion_rango_dinamico", res_adams.get("veredicto")),
-            "Descripción": res_adams.get("descripcion")
+        "checkbox": "cb1_composicion_visual",
+        "bloque": "A. Composición Visual",
+        "analisis_estabilidad_vs_conflicto": {
+            "Análisis de Estabilidad vs. Conflicto": diagnostico
         },
-        "quiebre_optico_saliencia": punto_quiebre,
-        "analisis_anacronismos": {
-            "Análisis de Anacronismos": diagnostico_anacronismos
-        }
+        "tension_y_lineas": kandinsky_vista,
+        "balance_simetrico": balance_vista,
+        "analisis_recorrido_y_saliencia": datos_saliencia,
+        "mapas_calor_composicion": mapas_composicion
     }
 
-# FUNCION QUE SE ASOCIA AL CHECKBOX 4 (semiotica de la imagen)
+# FUNCION QUE SE ASOCIA AL CHECKBOX 2 ( paleta y tonalidad / ex paleta cromática)
+def ejec_paleta_cromatica(imagen_path: str) -> dict:
+    """
+    Combina K-Means, atributos cromaticos (Ansel Adams/Temperatura),
+    evaluación semiótica (relaciones angulares + Eva Heller/Itten)
+    y el Sistema de Zonas de Ansel Adams (migrado de Módulo C).
+    """
+    paleta = obtener_paleta_cromatica(imagen_path, cantidad_colores=3)
+    atributos = analizar_atributos_cromaticos(imagen_path)
+    
+    if isinstance(paleta, dict) and "error" in paleta:
+        return paleta
+    if isinstance(atributos, dict) and "error" in atributos:
+        return atributos
+
+    temp_dom = atributos["contraste_temperatura"]["temperatura_dominante"]
+    desv_brillo = atributos.get("desviacion_brillo_std", None)
+    semiotica = evaluar_semiotica_cromatica(paleta, temp_dom, desv_brillo=desv_brillo)
+
+    # 1. Detectar si la imagen es blanco y negro / acromática
+    es_acromatica = "acromática" in temp_dom.lower()
+
+    # Si es acromática se pasa None para que el HTML no dibuje los chips de color
+    html_tarjetas = None if es_acromatica else renderizar_tarjetas_html(paleta)
+
+    # 2. Calculamos Sistema de Zonas y Gráfico
+    res_adams = analizar_luminosidad_completa(imagen_path)
+    if isinstance(res_adams, dict) and "error" in res_adams:
+        return res_adams
+
+    datos_zonas = res_adams.get("distribucion_completa", {})
+    grafico_zonas_html = generar_grafico_zonas_base64(datos_zonas)
+
+    sistema_zonas = {
+        "Evaluación Rango Dinámico": res_adams.get("evaluacion_rango_dinamico", res_adams.get("veredicto")),
+        "Descripción": res_adams.get("descripcion")
+    }
+
+    return {
+        "status": "success",
+        "checkbox": "cb2_paleta_cromatica",
+        "bloque": "B. Paleta y Tonalidad",
+        "paleta_kmeans": [] if es_acromatica else paleta,
+        # 1. Bloques gráficos superiores
+        "tarjetas_paleta_html": html_tarjetas,
+        "grafico_zonas_html": grafico_zonas_html,
+        # 2. Filas de la tabla (en orden)
+        "atributos_luminancia_y_temperatura": atributos,
+        "analisis_semiotico_color": semiotica,
+        "sistema_zonas_adams": sistema_zonas
+    }
+
+# FUNCION QUE SE ASOCIA AL CHECKBOX 3 (semiotica de la imagen)
 def ejec_semiotica_de_la_imagen(imagen_path: str, categoria_pieza: str = "general") -> dict:
     """
-    Integra la tricotomía peirciana (Ícono, Índice, Símbolo) 
-    y decodifica la significación (Saussure, Santaella, Eco).
+    Integra la tricotomía peirciana (Ícono, Índice, Símbolo),
+    decodifica la significación (Saussure, Santaella, Eco)
+    y evalúa anacronismos o rupturas temporales (migrado de Módulo C).
     """
     # 1. Dimensión Icónica (Reconocimiento denotativo del significante)
     res_iconico = analizar_semiotica_iconica(imagen_path, categoria_pieza)
@@ -283,10 +325,13 @@ def ejec_semiotica_de_la_imagen(imagen_path: str, categoria_pieza: str = "genera
     if isinstance(res_simbolico, dict) and "error" in res_simbolico:
         return res_simbolico
 
+    # 4. Diagnóstico de Anacronismos (Migrado del anterior Módulo C)
+    diagnostico_anacronismos = "No se detectan anacronismos visuales o discontinuidades temporales en la pieza."
+
     return {
         "status": "success",
         "checkbox": "cb4_semiotica_imagen",
-        "bloque": "D. Semiótica de la Imagen",
+        "bloque": "C. Semiótica de la Imagen",
         "marco_teorico": [
             "Charles Sanders Peirce (Tricotomía del Signo: Ícono, Índice, Símbolo)",
             "Ferdinand de Saussure (Significante / Significado)",
@@ -297,10 +342,13 @@ def ejec_semiotica_de_la_imagen(imagen_path: str, categoria_pieza: str = "genera
             "Análisis Icónico / Denotativo": res_iconico.get("resultado", {}),
             "Análisis Indicial / Materialidad": res_indicial.get("resultado", {}),
             "Análisis Simbólico / Cultural": res_simbolico.get("resultado", {})
+        },
+        "analisis_anacronismos": {
+            "Análisis de Anacronismos": diagnostico_anacronismos
         }
     }
 
-# FUNCION QUE SE ASOCIA AL CHECKBOX 5 (retórica visual)
+# FUNCION QUE SE ASOCIA AL CHECKBOX 4 (retórica visual)
 def ejec_retorica_visual(imagen_path: str, categoria_pieza: str = "general") -> dict:
     """
     Integra la retórica lingüística (Barthes), la detección física de paneles/amontonamiento (OpenCV)
@@ -371,7 +419,7 @@ def ejec_retorica_visual(imagen_path: str, categoria_pieza: str = "general") -> 
     return {
         "status": "success",
         "checkbox": "cb5_retorica_visual",
-        "bloque": "E. Retórica Visual",
+        "bloque": "D. Retórica Visual",
         "marco_teorico": [
             "Roland Barthes (Retórica e interacción Texto-Imagen)",
             "Figuras Retóricas Clásicas (Metáfora, Hipérbole por escala, Antítesis)",
@@ -384,7 +432,7 @@ def ejec_retorica_visual(imagen_path: str, categoria_pieza: str = "general") -> 
         }
     }
 
-# FUNCION QUE SE ASOCIA AL CHECKBOX 6 (contexto y denotación)
+# FUNCION QUE SE ASOCIA AL CHECKBOX 5 (contexto y denotación)
 
 def ejec_contexto_y_denotacion(imagen_path: str, categoria_pieza: str = "general") -> dict:
     """
@@ -398,35 +446,42 @@ def ejec_contexto_y_denotacion(imagen_path: str, categoria_pieza: str = "general
 
     # 2. Diagnóstico de Síntesis Denotativa vs. Connotativa (Morris / Barthes)
     prompt_sintesis = f"""
-    Realizá una síntesis semiótica integral de la pieza gráfica bajo la teoría de Charles Morris (Sintáctica, Semántica, Pragmática)
-    y la lectura de fondo de Roland Barthes (Denotación vs. Connotación).
+    Realizá una síntesis semiótica de la pieza gráfica combinando la teoría de Charles Morris y Roland Barthes.
 
-    REQUISITO SINO QUA NON DE SALIDA:
-    Responde EXCLUSIVAMENTE con un objeto JSON válido en idioma español. Sin preámbulos ni notas.
+    REQUISITO DE SALIDA:
+    Responde EXCLUSIVAMENTE con un objeto JSON válido. Todos los valores deben ser cadenas de texto continuo (strings) en idioma español. No uses listas ni diccionarios anidados.
 
-    REGLA GENERAL DE FIDELIDAD DENOTATIVA ABSTRACTA:
-    1. En el 'nivel_denotativo_literal', realizá un inventario visual estricto basado en la morfología, formas, texturas, volumen y materialidad de los elementos observados.
-    2. Identificá cada componente según su función estructural o perceptiva visible (ej. estructuras, superficies, figuras en movimiento, volúmenes, accesorios).
-    3. Mantené la máxima literalidad observacional: no asignes nombres de organismos, seres vivos ni categorías complejas a menos que queden incontestablemente evidenciados por su anatomía o forma gráfica real.
-    4. Queda estrictamente prohibido incluir sustantivos o etiquetas por mera analogía visual, textura o color si el elemento no está representado explícitamente.
-    5. Redactá todas las respuestas como cadenas de texto continuo en español, sin volcar estructuras de diccionario o código crudo.
+    INSTRUCCIONES DE CONTENIDO:
 
-    INSTRUCCIONES EVALUATIVAS:
-    1. 'nivel_denotativo_literal': Descripción literal e inventario objetivo de lo que se ve en la pieza.
-    2. 'nivel_connotativo_de_fondo': Interpretación de fondo, mitología, valores culturales o ideológicos transmitidos.
-    3. 'sintesis_dimensiones_morris': Resumen del cruce entre el orden sintáctico (formas/color), semántico (significados) y pragmático (impacto).
-    4. 'sintesis_niveles_clave': Cadena de texto limpia que consolide los conceptos denotativos y connotativos principales (Ejemplo: "Denotativo: [elementos directos] | Connotativo: [conceptos de fondo]").
+    1. 'nivel_denotativo_literal' (Roland Barthes - Nivel Denotativo):
+       - Redactá un párrafo breve en oraciones simples directas (sujeto + verbo + elemento visible).
+       - INVENTARIO FÍSICO PURO: Describe exclusivamente formas, objetos, colores y textos legibles. Prohibido mencionar sabores, temperaturas o sensaciones invisibles (ej. no digas 'sabor refrescante').
+       - PROHIBICIÓN SINTÁCTICA ESTRICTA:
+         * Queda TERMINANTEMENTE PROHIBIDA la estructura 'lo que...' ('lo que añade', 'lo que le da', 'lo que sugiere', 'lo que crea', 'lo que aporta').
+         * Quedan PROHIBIDOS los gerundios o verbos de juicio: 'representando', 'simbolizando', 'evocando', 'añadiendo un toque', 'aspecto vintage'.
+         * Si hay dos sorbetes en forma de corazón, describe únicamente la forma geométrica: 'Un sorbete blanco y rojo doblado en forma de corazón sobre la botella', y termina la oración ahí con un punto.
+       - Si hay sorbetes/pajitas, usa el término 'sorbete' o 'pajita'.
 
-    Estructura JSON estricta:
+    2. 'nivel_connotativo_de_fondo' (Roland Barthes - Nivel Connotativo):
+       - Redactá un párrafo fluido con el significado simbólico, mitos culturales, valores ideológicos, sensaciones (ej. confort matutino, amor, frescura) e intenciones de la pieza.
+
+    3. 'sintesis_dimensiones_morris':
+       - Redactá un párrafo continuo que sintetice el cruce sintáctico (formas/colores), semántico (a qué refieren) y pragmático (efecto en el espectador).
+
+    4. 'sintesis_niveles_clave':
+       - Una sola línea con el formato: "Denotativo: [elementos directos clave] | Connotativo: [conceptos de fondo]".
+
+    ESTRUCTURA JSON EXACTA:
     {{
         "reporte_contexto_y_denotacion": {{
-            "nivel_denotativo_literal": "Descripción literal e inventario físico de la pieza",
-            "nivel_connotativo_de_fondo": "Lectura ideológica y simbólica subyacente",
-            "sintesis_dimensiones_morris": "Cruce sintáctico-semántico-pragmático",
-            "sintesis_niveles_clave": "Denotativo: [elementos directos] | Connotativo: [conceptos de fondo]"
+            "nivel_denotativo_literal": "Descripción en oraciones cortas del inventario físico visible.",
+            "nivel_connotativo_de_fondo": "Interpretación simbólica y cultural.",
+            "sintesis_dimensiones_morris": "Resumen de las tres dimensiones.",
+            "sintesis_niveles_clave": "Denotativo: [...] | Connotativo: [...]"
         }}
     }}
     """
+
     res_vlm = consultar_minicpm_v(imagen_path, prompt_sintesis)
     if isinstance(res_vlm, dict) and "error" in res_vlm:
         return res_vlm
@@ -436,9 +491,17 @@ def ejec_contexto_y_denotacion(imagen_path: str, categoria_pieza: str = "general
     if isinstance(datos_vlm, dict) and "reporte_contexto_y_denotacion" in datos_vlm:
         datos_vlm = datos_vlm["reporte_contexto_y_denotacion"]
 
+    # Saneamiento de coletillas de escape en el nivel denotativo
+    denotativo_literal = datos_vlm.get("nivel_denotativo_literal", "") if isinstance(datos_vlm, dict) else ""
+    if isinstance(denotativo_literal, str):
+        patron_fuga = r",?\s*(?:lo\s+que|el\s+cual|la\s+cual|que)?\s*(?:sugiere[n]?|indica[n]?|evoca[n]?|denota[n]?|transmite[n]?)\s+[^,.]*"
+        denotativo_literal = re.sub(patron_fuga, "", denotativo_literal)
+        denotativo_literal = re.sub(r"\s{2,}", " ", denotativo_literal).strip()
+        denotativo_literal = re.sub(r"\s+\.", ".", denotativo_literal)
+
     vlm_formateado = {
         "Reporte de Contexto y Denotación": {
-            "Nivel Denotativo Literal": datos_vlm.get("nivel_denotativo_literal", ""),
+            "Nivel Denotativo Literal": denotativo_literal,
             "Nivel Connotativo de Fondo": datos_vlm.get("nivel_connotativo_de_fondo", ""),
             "Síntesis de Dimensiones de Morris": datos_vlm.get("sintesis_dimensiones_morris", ""),
             "Síntesis de Niveles Clave": datos_vlm.get("sintesis_niveles_clave", "")
@@ -448,7 +511,7 @@ def ejec_contexto_y_denotacion(imagen_path: str, categoria_pieza: str = "general
     return {
         "status": "success",
         "checkbox": "cb6_contexto_denotacion",
-        "bloque": "F. Contexto y Denotación",
+        "bloque": "E. Contexto y Denotación",
         "marco_teorico": [
             "Charles Morris (Síntesis de dimensiones: Sintáctica, Semántica, Pragmática)",
             "Roland Barthes (Nivel Denotativo vs. Nivel Connotativo)",
@@ -464,7 +527,6 @@ def ejec_contexto_y_denotacion(imagen_path: str, categoria_pieza: str = "general
 MAPA_CHECKBOXES_CAT0 = {
     "cb1_composicion_visual": ejec_composicion_visual,
     "cb2_paleta_cromatica": ejec_paleta_cromatica,
-    "cb3_iluminacion": ejec_iluminacion_y_punctum,
     "cb4_semiotica_imagen": ejec_semiotica_de_la_imagen,
     "cb5_retorica_visual": ejec_retorica_visual,
     "cb6_contexto_denotacion": ejec_contexto_y_denotacion
