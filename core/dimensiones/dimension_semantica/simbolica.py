@@ -42,15 +42,18 @@ def analizar_semiotica_simbolica(imagen_path: str, categoria: str = "general") -
     Analizá la significación de la pieza considerando tres niveles de convención cultural:
 
     1. Contexto Local (Argentina):
-       - Verificá si existen símbolos, banderas, marcas o códigos locales explícitamente presentes.
-       - Si NO existen elementos o textos locales explícitos, responde ESTRICTAMENTE: "Sin elementos de la iconografía o cultura local argentina."
-       - Queda PROHIBIDO inventar u opinar sobre influencias culturales de otros países en esta casilla.
+       - Verificá si existen símbolos, banderas, marcas, tipografías o iconografía local argentina explícitamente observables.
+       - Si NO existen elementos locales explícitos, responde ESTRICTAMENTE: "Sin elementos de la iconografía o cultura local argentina."
+       - Queda PROHIBIDO asumir o inventar influencias sin evidencia visual directa.
 
     2. Contexto Regional (LATAM):
-       - Identificá convenciones, tipologías o fenómenos visuales/culturales compartidos a escala latinoamericana.
+       - Verificá si existen rasgos culturales, iconográficos, lingüísticos o convenciones visuales propias y exclusivas de Latinoamérica.
+       - Si la imagen representa un objeto genérico, neutro, global o sin marcadores latinoamericanos directos (por ejemplo vehículos genéricos, molinos eólicos globales, paisajes no identificados), responde ESTRICTAMENTE: "Sin anclaje visual o cultural específico de la región latinoamericana."
+       - Queda TERMINANTEMENTE PROHIBIDO forzar asociaciones abstractas (como generalizar tecnologías, objetos cotidianos o industrias globales a Latinoamérica).
 
-    3. Contexto Global:
-       - Evaluá significados universales, estándares internacionales de diseño o corrientes estilísticas de alcance global.
+   3. Contexto Global (Simbólico / Connotativo):
+       - Queda PROHIBIDO limitarse a describir los objetos presentes o la escena (eso corresponde al nivel icónico/denotativo).
+       - Interpretá EXCLUSIVAMENTE los significados abstractos, valores universales, conceptos culturales o mitos sociales que el signo evoca a nivel global (ej. libertad, aventura, domesticación, afecto, compañía, modernidad).
 
     REGLA GENERAL:
     Construye cada respuesta de manera fluida, breve y conceptual en una sola línea.
@@ -59,9 +62,9 @@ def analizar_semiotica_simbolica(imagen_path: str, categoria: str = "general") -
     La estructura del JSON debe ser exactamente:
     {{
         "analisis_simbolico": {{
-            "contexto_argentina": "Análisis explícito si hay símbolos argentinos visibles. Si no los hay, escribir exactamente: Sin elementos de la iconografía o cultura local argentina.",
-            "contexto_latam": "Interpretación a nivel regional latinoamericano en una sola línea de texto.",
-            "contexto_global": "Interpretación a nivel universal o global en una sola línea de texto."
+            "contexto_argentina": "Análisis si hay elementos argentinos observables. Si no, escribir exactamente: Sin elementos de la iconografía o cultura local argentina.",
+            "contexto_latam": "Análisis si hay elementos latinoamericanos observables. Si no, escribir exactamente: Sin anclaje visual o cultural específico de la región latinoamericana.",
+            "contexto_global": "Valores abstractos, connotaciones culturales universales o conceptos simbólicos globales que evoca la pieza. PROHIBIDO describir físicamente la escena."
         }}
     }}
     """
