@@ -1581,7 +1581,7 @@ def render_analizar():
     if "transversal_historicas" not in st.session_state:
         st.session_state["transversal_historicas"] = False
 
-    # Diccionario de módulos individuales (6 módulos)
+    # Diccionario de módulos individuales (5 módulos)
     modulos_por_categoria = {
         "semiotico": [
             {
@@ -1594,26 +1594,18 @@ def render_analizar():
             },
             {
                 "id": "paleta_cromatica",
-                "titulo": "Paleta cromática",
+                "titulo": "Paleta y tonalidad",
                 "desc": (
-                    "Estudio de armonía de color, contrastes, saturación y"
-                    " temperatura."
-                ),
-            },
-            {
-                "id": "iluminacion",
-                "titulo": "Iluminación",
-                "desc": (
-                    "Análisis de sombras, puntos de luz, volumen y profundidad"
-                    " visual."
+                    "Estudio de armonía de color, rangos dinámicos (Ansel Adams),"
+                    " contrastes y temperatura."
                 ),
             },
             {
                 "id": "semiotica_imagen",
                 "titulo": "Semiótica de la imagen",
                 "desc": (
-                    "Interpretación de signos, simbolismo cultural y códigos"
-                    " visuales."
+                    "Interpretación de signos, anacronismos temporales, simbolismo cultural"
+                    " y códigos visuales."
                 ),
             },
             {
@@ -1736,7 +1728,7 @@ def render_analizar():
         <div class="module-badge module-badge-master">★</div>
         <div class="module-texts-wrap">
             <span class="module-title">Análisis completo (Todos los módulos)</span>
-            <span class="module-desc">Diagnóstico integral que abarca todos los 6 niveles semióticos y perceptivos.</span>
+            <span class="module-desc">Diagnóstico integral que abarca los 5 niveles semióticos y perceptivos.</span>
         </div>
     </div>
     """
@@ -3796,7 +3788,7 @@ def render_analizar():
     </html>
     """
 
-    components.html(analizar_html, height=2110, scrolling=False)
+    components.html(analizar_html, height=2030, scrolling=False)
 
     # -------------------------------------------------------------------------
     # RECEPTOR NATIVO DE ARCHIVO (OCULTO VISUALMENTE, SIN BASE64 NI LOOPS)
@@ -4423,18 +4415,17 @@ def render_reportes():
 
         MAPA_LETRAS_MODULOS = {
             "composicion_visual": ("A", "Composición visual"),
-            "paleta_cromatica": ("B", "Paleta cromática"),
-            "iluminacion": ("C", "Iluminación"),
-            "semiotica_imagen": ("D", "Semiótica de la imagen"),
-            "retorica_visual": ("E", "Retórica visual"),
-            "contexto_denotacion": ("F", "Contexto y denotación"),
+            "paleta_cromatica": ("B", "Paleta y tonalidad"),
+            "semiotica_imagen": ("C", "Semiótica de la imagen"),
+            "retorica_visual": ("D", "Retórica visual"),
+            "contexto_denotacion": ("E", "Contexto y denotación"),
         }
 
         modulos_sel = st.session_state.get("modulos_seleccionados", [])
         total_modulos_posibles = len(MAPA_LETRAS_MODULOS)
 
         if len(modulos_sel) == total_modulos_posibles:
-            modulo_txt = "COMPLETO (MÓDULOS A–F)"
+            modulo_txt = "COMPLETO (MÓDULOS A–E)"
         elif len(modulos_sel) == 0:
             modulo_txt = "TRANSVERSALES"
         elif len(modulos_sel) == 1:
@@ -5764,12 +5755,11 @@ def render_reportes():
         
         # Tabla de alturas según la carga visual y textual de cada módulo
         ALTURAS_POR_MODULO = {
-            "composicion_visual": 1050,  # NO TOCAR VALOR
-            "paleta_cromatica": 1200,     # NO TOCAR VALOR
-            "iluminacion": 1650,          # NO TOCAR VALOR
-            "semiotica_imagen": 1200,     # NO TOCAR VALOR
-            "retorica_visual": 1300,      # NO TOCAR VALOR
-            "contexto_denotacion": 1350,  # Nivel literal y contexto
+            "composicion_visual": 2000,  # NO TOCAR VALOR
+            "paleta_cromatica": 1600,     # NO TOCAR VALOR
+            "semiotica_imagen": 1500,     # NO TOCAR VALOR
+            "retorica_visual": 1600,      # NO TOCAR VALOR
+            "contexto_denotacion": 1600,  # Nivel literal y contexto
             "transversal_wcag": 600,     # Tabla de contraste de accesibilidad
             "transversal_historicas": 600 # Referencias y movimientos históricos
         }

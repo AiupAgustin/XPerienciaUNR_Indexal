@@ -225,12 +225,6 @@
             {{ b.tarjetas_paleta_html | safe }}
         {% endif %}
 
-        {% if b.grafico_zonas_html %}
-            <div style="margin-top: 10px; margin-bottom: 14px; text-align: center;">
-                {{ b.grafico_zonas_html | safe }}
-            </div>
-        {% endif %}
-
         <table class="tabla-resultados">
             <thead>
                 <tr>
@@ -240,7 +234,7 @@
             </thead>
             <tbody>
             {% for key, val in b.items() %}
-                {% if key.startswith('desglose_') or key.startswith('evaluacion_') or key.startswith('analisis_') or key.startswith('quiebre_') or key.startswith('sistema_') or key.startswith('tension_') or key.startswith('balance_') or key.startswith('mapa_') %}
+                {% if (key.startswith('desglose_') or key.startswith('evaluacion_') or key.startswith('analisis_') or key.startswith('quiebre_') or key.startswith('sistema_') or key.startswith('tension_') or key.startswith('balance_') or key.startswith('mapa_')) and key != 'mapas_calor_composicion' %}
                     
                     {% if val is mapping %}
                         {% for sub_key, sub_val in val.items() %}
@@ -309,6 +303,26 @@
             {% endfor %}
             </tbody>
         </table>
+        
+        {% if b.mapas_calor_composicion %}
+            {% set total_mapas = b.mapas_calor_composicion | length %}
+            {% set ancho_col = (100 / total_mapas) | round(1) if total_mapas > 0 else 100 %}
+            <table style="width: 100%; border-collapse: collapse; border: none; margin-top: 18px; page-break-inside: avoid;">
+                <tr>
+                    {% for mapa in b.mapas_calor_composicion %}
+                        <td width="{{ ancho_col }}%" style="vertical-align: top; text-align: center; padding: 0 5px; border: none;">
+                            <img src="{{ mapa.imagen }}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" alt="{{ mapa.nombre }}">
+                        </td>
+                    {% endfor %}
+                </tr>
+            </table>
+        {% endif %}
+
+        {% if b.grafico_zonas_html %}
+            <div style="margin-top: 14px; margin-bottom: 8px; text-align: center;">
+                {{ b.grafico_zonas_html | safe }}
+            </div>
+        {% endif %}
     </div>
     {% endfor %}
 

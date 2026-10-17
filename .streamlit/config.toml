@@ -1,7 +1,7 @@
 
 [server]
 maxUploadSize = 10
-maxMessageSize = 50
+maxMessageSize = 200
 enableCORS = true
 enableXsrfProtection = true
 

@@ -103,14 +103,13 @@ def registrar_analisis_galeria(
             str(tipo_analisis).lower(), "Semiótico"
         )
 
-        # 2. Mapeo idéntico al de Reportes para las Letras (A-F)
+        # 2. Mapeo idéntico al de Reportes para las Letras (A-E)
         MAPA_LETRAS = {
             "composicion_visual": ("A", "Composición visual"),
-            "paleta_cromatica": ("B", "Paleta cromática"),
-            "iluminacion": ("C", "Iluminación"),
-            "semiotica_imagen": ("D", "Semiótica de la imagen"),
-            "retorica_visual": ("E", "Retórica visual"),
-            "contexto_denotacion": ("F", "Contexto y denotación"),
+            "paleta_cromatica": ("B", "Paleta y tonalidad"),
+            "semiotica_imagen": ("C", "Semiótica de la imagen"),
+            "retorica_visual": ("D", "Retórica visual"),
+            "contexto_denotacion": ("E", "Contexto y denotación"),
         }
 
         modulos_base_sel = [m for m in modulos_seleccionados if m in MAPA_LETRAS]
@@ -120,7 +119,7 @@ def registrar_analisis_galeria(
         tiene_hist = "transversal_historicas" in modulos_seleccionados
 
         if len(modulos_base_sel) == total_modulos_posibles:
-            modulo_txt = "Análisis completo · 6 módulos"
+            modulo_txt = "Análisis completo · 5 módulos"
         elif len(modulos_base_sel) == 1:
             letra, _ = MAPA_LETRAS[modulos_base_sel[0]]
             modulo_txt = f"MÓDULO {letra}"
