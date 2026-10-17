@@ -131,11 +131,11 @@ def analizar_atencion_predictiva(imagen_path: str, output_heatmap_dir: str = "ou
     overlay = cv2.addWeighted(img, 0.6, heatmap_color, 0.4, 0)
 
     success, buffer = cv2.imencode(".png", overlay)
-    heatmap_data_uri = (
-        f"data:image/png;base64,{base64.b64encode(buffer).decode('utf-8').replace('\n', '').replace('\r', '')}"
-        if success
-        else ""
-    )
+    if success:
+        b64_str = base64.b64encode(buffer).decode("utf-8").replace("\n", "").replace("\r", "")
+        heatmap_data_uri = f"data:image/png;base64,{b64_str}"
+    else:
+        heatmap_data_uri = ""
 
     return {
         "status": "success",
