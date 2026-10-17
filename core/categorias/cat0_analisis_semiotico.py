@@ -459,8 +459,6 @@ def ejec_contexto_y_denotacion(imagen_path: str, categoria_pieza: str = "general
        - PROHIBICIÓN SINTÁCTICA ESTRICTA:
          * Queda TERMINANTEMENTE PROHIBIDA la estructura 'lo que...' ('lo que añade', 'lo que le da', 'lo que sugiere', 'lo que crea', 'lo que aporta').
          * Quedan PROHIBIDOS los gerundios o verbos de juicio: 'representando', 'simbolizando', 'evocando', 'añadiendo un toque', 'aspecto vintage'.
-         * Si hay dos sorbetes en forma de corazón, describe únicamente la forma geométrica: 'Un sorbete blanco y rojo doblado en forma de corazón sobre la botella', y termina la oración ahí con un punto.
-       - Si hay sorbetes/pajitas, usa el término 'sorbete' o 'pajita'.
 
     2. 'nivel_connotativo_de_fondo' (Roland Barthes - Nivel Connotativo):
        - Redactá un párrafo fluido con el significado simbólico, mitos culturales, valores ideológicos, sensaciones (ej. confort matutino, amor, frescura) e intenciones de la pieza.
