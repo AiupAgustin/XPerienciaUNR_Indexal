@@ -191,12 +191,12 @@ def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante, desv_brillo=N
             calidad_luz = "Gradación tonal continua con modelado equilibrado entre luces y sombras."
 
         return {
-            "Esquema Relacional": "Monocromático Acromático (B&N)",
+            #"Esquema Relacional": "Monocromático Acromático (B&N)",
             "Marco Teórico": "Ansel Adams",
-            "Significado Cultural / Psicológico": (
-                "Composición acromática en escala de grises. "
-                "Enfatiza el contraste de luces y sombras, el drama formal y la estructura gráfica."
-            ),
+            #"Significado Cultural / Psicológico": (
+            #    "Composición acromática en escala de grises. "
+            #    "Enfatiza el contraste de luces y sombras, el drama formal y la estructura gráfica."
+            #),
             "Calidad Lumínica / Contraste": calidad_luz
         }
 
@@ -224,7 +224,7 @@ def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante, desv_brillo=N
             "Esquema Relacional": "Monocromático Puro",
             "Diferencia Angular": "0.0°",
             "Marco Teórico": "Johannes Itten / Kandinsky",
-            "Significado Cultural / Psicológico": "Composición monocromática absoluta. Máxima homogeneidad, sobriedad y foco en el valor tonal.",
+            #"Significado Cultural / Psicológico": "Composición monocromática absoluta. Máxima homogeneidad, sobriedad y foco en el valor tonal.",
             "Clima de Temperatura": f"Clima predominantemente {temp_masculina}."
         }
 
@@ -250,6 +250,6 @@ def evaluar_semiotica_cromatica(paleta_rgb, temperatura_dominante, desv_brillo=N
         "Esquema Relacional": esquema,
         "Diferencia Angular": f"{round(diff_angulo, 1)}° / Escala 0° a 180°",
         "Marco Teórico": marco,
-        "Significado Cultural / Psicológico": diagnostico,
+        #"Significado Cultural / Psicológico": diagnostico,
         "Clima de Temperatura": f"Clima predominantemente {temp_masculina}."
     }
