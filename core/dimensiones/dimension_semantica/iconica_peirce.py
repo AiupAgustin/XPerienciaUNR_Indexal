@@ -34,7 +34,7 @@ def analizar_semiotica_iconica(imagen_path: str, categoria: str = "general") -> 
     # Selección del prompt base según la categoría
     prompt_base = PROMPTS_ICONICOS.get(categoria.lower(), PROMPTS_ICONICOS["general"])
     
-    # Inyección de instrucciones para descripción denotativa libre de sesgos
+    # Inyección de instrucciones para descripción denotativa libre de sesgos y anti-pareidolia
     prompt_final = f"""
     {prompt_base}
 
@@ -42,14 +42,22 @@ def analizar_semiotica_iconica(imagen_path: str, categoria: str = "general") -> 
     Debes responder EXCLUSIVAMENTE con un objeto JSON válido, en idioma español de uso común.
     No incluyas preámbulos, notas ni bloques markdown auxiliares.
 
-    INSTRUCCIÓN VISUAL DENOTATIVA:
-    Describe de forma directa, en una sola oración breve y con palabras simples, qué objetos reales y principales componen esta imagen específica. 
-    Construye la descripción combinando los elementos visuales dominantes de manera fluida (Ejemplo de estructura: 'Un ambiente con X, Y y Z'). 
-    NO utilices números, no cuentes elementos y no copies palabras del ejemplo de estructura. Céntrate únicamente en lo que ves con certeza absoluta en la imagen.
+    INSTRUCCIÓN VISUAL DENOTATIVA Y FIDELIDAD OBSERVACIONAL (ANTI-PAREIDOLIA):
+    Describe de forma directa, en una sola oración breve y con palabras simples, qué objetos y formas componen esta imagen de forma estrictamente visible y verificable.
+    
+    REGLAS DE RESTRICCIÓN:
+    1. CERO PAREIDOLIA Y FIDELIDAD OBSERVACIONAL:
+       - No asignes identidades, rostros ni objetos basados en manchas, sombras, texturas de pelaje o pliegues ambiguos.
+       - Solo reporta objetos, prendas o accesorios si son físicamente discernibles de manera clara, completa e independiente del fondo o del sujeto (no confundir patrones corporales, manchas de pigmentación o sombras con objetos añadidos).
+       - Si una figura es deforme, ambigua o surrealista, descríbela por su morfología neutra ('figura abstracta', 'forma biomórfica') sin forzar asociaciones.
+    2. CERTEZA DENOTATIVA:
+       - Limítate estrictamente a lo indiscutible. Ante la mínima duda o ambigüedad sobre si un detalle es un objeto o una textura natural, limítate a describir el sujeto principal y su entorno.
+    3. REGLA ESTRUCTURAL:
+       - NO utilices números, no cuentes elementos y no agregues interpretaciones simbólicas ni metáforas.
 
     La estructura del JSON debe ser exactamente:
     {{
-        "analisis_denotativo": "Aquí va tu descripción real de la imagen en una sola línea de texto"
+        "analisis_denotativo": "Descripción objetiva de los objetos indudables y formas observables en una sola línea de texto."
     }}
     """
     
