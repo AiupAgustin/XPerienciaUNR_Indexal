@@ -1553,6 +1553,8 @@ def render_analizar():
 
     if "terminos_aceptados" not in st.session_state:
         st.session_state["terminos_aceptados"] = False
+    if "autoriza_galeria" not in st.session_state:
+        st.session_state["autoriza_galeria"] = False
 
     if "paso_actual" not in st.session_state:
         st.session_state["paso_actual"] = 1
@@ -2884,53 +2886,117 @@ def render_analizar():
                 margin-bottom: 20px;
             }}
 
+            .welcome-options-container {{
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                width: 100%;
+                box-sizing: border-box;
+            }}
+
             .welcome-accept-box {{
                 display: flex;
                 align-items: center;
                 gap: 14px;
                 width: 100%;
-                padding: 16px 18px;
+                padding: 14px 16px;
                 border-radius: 12px;
-                border: 1.5px solid #0057FF;
-                background-color: #EDF3FF;
-                cursor: default;
+                border: 1.5px solid #C4C6CF;
+                background-color: #FFFFFF;
+                cursor: pointer;
                 box-sizing: border-box;
                 text-align: left;
                 user-select: none;
+                transition: border-color 0.2s ease, background-color 0.2s ease;
+            }}
+
+            .welcome-accept-box:hover {{
+                border-color: #0057FF;
+            }}
+
+            .welcome-accept-box.checked {{
+                border-color: #0057FF;
+                background-color: #EDF3FF;
             }}
 
             .welcome-checkbox {{
-                            width: 22px;
-                            height: 22px;
-                            min-width: 22px;
-                            min-height: 22px;
-                            border-radius: 6px;
-                            border: 2px solid #0057FF;
-                            background-color: #FFFFFF;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            flex-shrink: 0;
-                            ursor: pointer;
-                            transition: transform 0.1s ease, background-color 0.15s ease;
-                        }}
-
-            .welcome-checkbox:hover {{
-                background-color: #F0F5FF;
-                transform: scale(1.05);
+                width: 22px;
+                height: 22px;
+                min-width: 22px;
+                min-height: 22px;
+                border-radius: 6px;
+                border: 2px solid #C4C6CF;
+                background-color: #FFFFFF;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                transition: all 0.2s ease;
             }}
 
-            .welcome-checkbox:active {{
-                transform: scale(0.95);
+            .welcome-accept-box.checked .welcome-checkbox {{
+                border-color: #0057FF;
+                background-color: #0057FF;
+            }}
+
+            .welcome-checkbox svg {{
+                width: 14px;
+                height: 14px;
+                fill: #FFFFFF;
+                display: none;
+            }}
+
+            .welcome-accept-box.checked .welcome-checkbox svg {{
+                display: block;
             }}
 
             .welcome-accept-text {{
                 font-family: 'Space Grotesk', sans-serif !important;
-                font-size: 13.5px;
+                font-size: 13px;
                 line-height: 1.4;
                 color: #444748;
                 font-weight: 400;
                 margin: 0;
+                flex: 1;
+            }}
+
+            .welcome-badge-opt {{
+                font-size: 10px;
+                font-weight: 700;
+                color: #5E6366;
+                background-color: #E5E7EB;
+                padding: 2px 6px;
+                border-radius: 4px;
+                margin-left: 6px;
+            }}
+
+            .btn-welcome-submit {{
+                width: 100%;
+                height: 46px;
+                margin-top: 18px;
+                border-radius: 10px;
+                background-color: #0057FF;
+                color: #FFFFFF;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 14.5px;
+                font-weight: 700;
+                border: none;
+                cursor: pointer;
+                transition: background-color 0.2s ease, opacity 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }}
+
+            .btn-welcome-submit:hover {{
+                background-color: #0046D5;
+            }}
+
+            .btn-welcome-submit.disabled {{
+                background-color: #E5E7EB !important;
+                color: #9CA3AF !important;
+                cursor: not-allowed !important;
+                pointer-events: none !important;
             }}
 
             .welcome-link-btn {{
@@ -3306,12 +3372,31 @@ def render_analizar():
                 </p>
                 <div class="welcome-divider"></div>
 
-                <div class="welcome-accept-box" id="btnAceptarTerminosBox">
-                    <div class="welcome-checkbox" id="chkBoxTerminos"></div>
-                    <p class="welcome-accept-text">
-                        Acepto los <a href="javascript:void(0)" class="welcome-link-btn" id="lnkTerminosServicio">términos del servicio</a> y la <a href="javascript:void(0)" class="welcome-link-btn" id="lnkPoliticaPrivacidad">política de privacidad de Indexal</a>.
-                    </p>
+                <div class="welcome-options-container">
+                    <!-- Checkbox Obligatorio: Términos -->
+                    <div class="welcome-accept-box" id="boxTerminosObligatorios">
+                        <div class="welcome-checkbox">
+                            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                        </div>
+                        <p class="welcome-accept-text">
+                            Acepto los <a href="javascript:void(0)" class="welcome-link-btn" id="lnkTerminosServicio">términos del servicio</a> y la <a href="javascript:void(0)" class="welcome-link-btn" id="lnkPoliticaPrivacidad">política de privacidad de Indexal</a>.
+                        </p>
+                    </div>
+
+                    <!-- Checkbox Opcional: Galería (Opción 1) -->
+                    <div class="welcome-accept-box" id="boxAutorizaGaleria">
+                        <div class="welcome-checkbox">
+                            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                        </div>
+                        <p class="welcome-accept-text">
+                            Autorizo a que las imágenes analizadas durante esta sesión se exhiban en la galería pública de Indexal. <span class="welcome-badge-opt">OPCIONAL</span>
+                        </p>
+                    </div>
                 </div>
+
+                <button class="btn-welcome-submit disabled" id="btnComenzarSesion">
+                    Comenzar
+                </button>
             </div>
         </div>
 
@@ -3506,15 +3591,60 @@ def render_analizar():
                 if (allButtons.length > 2) allButtons[2].click();
             }});
 
-            // Gestión del click de aceptación de términos
-            const chkTerminos = document.getElementById('chkBoxTerminos');
-            if (chkTerminos) {{
-                chkTerminos.addEventListener('click', function(e) {{
-                    e.stopPropagation();
+            // Manejo interactivo de checkboxes y botón Comenzar
+            let aceptoTerminos = false;
+            let autorizoGaleria = false;
+
+            const boxTerm = document.getElementById('boxTerminosObligatorios');
+            const boxGal = document.getElementById('boxAutorizaGaleria');
+            const btnComenzar = document.getElementById('btnComenzarSesion');
+
+            function actualizarBotonComenzar() {{
+                if (btnComenzar) {{
+                    if (aceptoTerminos) {{
+                        btnComenzar.classList.remove('disabled');
+                    }} else {{
+                        btnComenzar.classList.add('disabled');
+                    }}
+                }}
+            }}
+
+            if (boxTerm) {{
+                boxTerm.addEventListener('click', function(e) {{
+                    // Si se hizo click en los enlaces internos, no alternar el check
+                    if (e.target.id === 'lnkTerminosServicio' || e.target.id === 'lnkPoliticaPrivacidad') return;
+                    aceptoTerminos = !aceptoTerminos;
+                    boxTerm.classList.toggle('checked', aceptoTerminos);
+                    actualizarBotonComenzar();
+                }});
+            }}
+
+            if (boxGal) {{
+                boxGal.addEventListener('click', function() {{
+                    autorizoGaleria = !autorizoGaleria;
+                    boxGal.classList.toggle('checked', autorizoGaleria);
+                }});
+            }}
+
+            if (btnComenzar) {{
+                btnComenzar.addEventListener('click', function() {{
+                    if (!aceptoTerminos) return;
+
                     const allButtons = parentDoc.querySelectorAll('div.stButton button');
-                    const idxTerminos = {14 + len(lista_modulos_activa)};
-                    if (allButtons.length > idxTerminos) {{
-                        allButtons[idxTerminos].click();
+                    // Si el usuario autorizó galería, disparamos el botón con flag de galería
+                    const idxBaseTerminos = {14 + len(lista_modulos_activa)};
+                    
+                    if (autorizoGaleria) {{
+                        const idxGaleria = {27 + len(lista_modulos_activa)};
+                        if (allButtons.length > idxGaleria) {{
+                            allButtons[idxGaleria].click();
+                            return;
+                        }}
+                    }}
+
+                    // Si no autorizó galería, disparamos el botón clásico de aceptación
+                    if (allButtons.length > idxBaseTerminos) {{
+                        allButtons[idxBaseTerminos].click();
                     }}
                 }});
             }}
@@ -3944,7 +4074,7 @@ def render_analizar():
 
     # Botones ocultos de navegación y estado
     botones_modulos_count = len(lista_modulos_activa)
-    columnas_totales = st.columns(27 + botones_modulos_count)
+    columnas_totales = st.columns(28 + botones_modulos_count)
 
     # 1. Navegación del Menú Lateral (0, 1, 2)
     with columnas_totales[0]:
@@ -4159,15 +4289,20 @@ def render_analizar():
 
             st.session_state["ultimo_reporte_json"] = copy.deepcopy(master_json)
 
-            resumen_desc = master_json.get("metadata", {}).get("resumen_ejecutivo") or "Sistema analizado"
-            registrar_analisis_galeria(
-                imagen_path=ruta_completa_imagen,
-                tipo_analisis=cat_str,
-                modulos_seleccionados=modulos_a_ejecutar,
-                descripcion=resumen_desc,
-                master_json=master_json,
-                nombre_personalizado=nombre_real_archivo
-            )
+            # Solo guardamos en la galería de Supabase si el usuario dio su consentimiento
+            if st.session_state.get("autoriza_galeria", False):
+                resumen_desc = master_json.get("metadata", {}).get("resumen_ejecutivo") or "Sistema analizado"
+                try:
+                    registrar_analisis_galeria(
+                        imagen_path=ruta_completa_imagen,
+                        tipo_analisis=cat_str,
+                        modulos_seleccionados=modulos_a_ejecutar,
+                        descripcion=resumen_desc,
+                        master_json=master_json,
+                        nombre_personalizado=nombre_real_archivo
+                    )
+                except Exception as ex_gal:
+                    print(f"Error registrando en galería pública: {ex_gal}")
 
             nombre_img_original = st.session_state.get("nombre_imagen", "Analisis")
             nombre_limpio = os.path.splitext(nombre_img_original)[0]
@@ -4282,6 +4417,13 @@ def render_analizar():
     with columnas_totales[idx_transversal + 15]:
         if st.button("\u200b", key="btn_hidden_analizar_indexal"):
             st.session_state["pantalla_actual"] = "que_es_indexal"
+            st.rerun()
+
+    # 21. Botón invisible para Aceptar Términos + Autorizar Galería
+    with columnas_totales[idx_transversal + 16]:
+        if st.button("\u200b", key="btn_hidden_aceptar_terminos_y_galeria"):
+            st.session_state["terminos_aceptados"] = True
+            st.session_state["autoriza_galeria"] = True
             st.rerun()
 
 # -----------------------------------------------------------------
