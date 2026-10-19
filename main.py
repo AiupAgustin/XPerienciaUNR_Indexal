@@ -1696,8 +1696,48 @@ def render_analizar():
     if st.session_state["transversal_historicas"]:
         total_modulos_activos += 1
 
-    tiempo_min = max(10, total_modulos_activos * 4)
-    tiempo_max = max(15, total_modulos_activos * 6)
+    # Módulos heurísticos / rápidos y pesados con IA
+    MODULOS_RAPIDOS = {"composicion_visual", "paleta_cromatica"}
+    MODULOS_IA = {"semiotica_imagen", "retorica_visual", "contexto_denotacion"}
+
+    sec_min = 0
+    sec_max = 0
+    primer_modulo_ia = True
+
+    for mid in st.session_state.get("modulos_seleccionados", []):
+        if mid in MODULOS_RAPIDOS:
+            sec_min += 10
+            sec_max += 15
+        elif mid in MODULOS_IA:
+            if primer_modulo_ia:
+                # Cold start: arranque del servidor + inferencia inicial
+                sec_min += 180  # 3 min
+                sec_max += 240  # 4 min
+                primer_modulo_ia = False
+            else:
+                # Servidor ya caliente: tiempo neto de inferencia
+                sec_min += 60   # 1 min
+                sec_max += 90   # 1.5 min
+        else:
+            sec_min += 30
+            sec_max += 60
+
+    if st.session_state.get("transversal_wcag"):
+        sec_min += 15
+        sec_max += 25
+    if st.session_state.get("transversal_historicas"):
+        sec_min += 15
+        sec_max += 25
+
+    # Formateo dinámico y limpio
+    if sec_max == 0:
+        tiempo_estimado_str = "0 s"
+    elif sec_max < 60:
+        tiempo_estimado_str = f"{max(10, sec_min)}–{max(15, sec_max)} s"
+    else:
+        min_i = max(1, math.floor(sec_min / 60))
+        min_f = max(min_i + 1, math.ceil(sec_max / 60))
+        tiempo_estimado_str = f"{min_i}–{min_f} min"
 
     puede_generar = (
         st.session_state["imagen_cargada"]
@@ -3344,7 +3384,7 @@ def render_analizar():
                             <img src="{icon_star}" class="btn-generar-icon" alt="Star">
                             <span>Generar análisis</span>
                         </button>
-                        <span class="action-footer-info">{total_modulos_activos} módulos seleccionados · tiempo estimado {tiempo_min}–{tiempo_max} s</span>
+                        <span class="action-footer-info">{total_modulos_activos} módulos seleccionados · tiempo estimado ~{tiempo_estimado_str}</span>
                     </div>
                 </div>
 
