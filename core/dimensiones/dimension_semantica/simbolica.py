@@ -35,36 +35,37 @@ def analizar_semiotica_simbolica(imagen_path: str, categoria: str = "general") -
     {prompt_base}
 
     REQUISITO SINO QUA NON DE SALIDA:
-    Debes responder EXCLUSIVAMENTE con un objeto JSON válido, en idioma español de uso común.
-    No incluyas preámbulos, notas ni bloques markdown auxiliares.
+    Debes responder EXCLUSIVAMENTE con un objeto JSON válido, en idioma español.
+    No incluyas preámbulos, notas ni bloques markdown auxiliares fuera del JSON.
 
-    INSTRUCCIÓN SEMÁNTICA SIMBÓLICA Y FIDELIDAD OBSERVACIONAL:
-    Analizá la significación de la pieza considerando tres niveles de convención cultural:
+    METODOLOGÍA DE ANÁLISIS EN DOS FASES:
 
+    FASE 1 — INVENTARIO DE EVIDENCIA VISUAL:
+    Examina minuciosamente la imagen e identifica cualquier significante gráfico o cultural concreto:
+    - Banderas, escarapelas, soles, escudos, emblemas nacionales o colores patrios.
+    - Objetos y rituales cotidianos (recipientes de infusión tradicionales, vestimenta típica, herramientas).
+    - Hitos geográficos, cordilleras, flora, fauna autóctona o arquitectura representativa.
+
+    FASE 2 — DECODIFICACIÓN SIMBÓLICA (COHERENCIA OBLIGATORIA):
     1. Contexto Local (Argentina):
-       - Verificá si existen símbolos, banderas, marcas, tipografías o iconografía local argentina explícitamente observables.
-       - Si NO existen elementos locales explícitos, responde ESTRICTAMENTE: "Sin elementos de la iconografía o cultura local argentina."
-       - Queda PROHIBIDO asumir o inventar influencias sin evidencia visual directa.
+       - Si en la FASE 1 detectaste símbolos o prácticas vinculadas a Argentina (por ejemplo colores celeste/blanco, sol figurativo, infusión de mate, etc.), explica con precisión qué representan en su cultura.
+       - Solo si la FASE 1 carece por completo de signos vinculables, indica: "Sin elementos de la iconografía o cultura local argentina."
 
-    2. Contexto Regional (LATAM):
-       - Verificá si existen rasgos culturales, iconográficos, lingüísticos o convenciones visuales propias y exclusivas de Latinoamérica.
-       - Si la imagen representa un objeto genérico, neutro, global o sin marcadores latinoamericanos directos (por ejemplo vehículos genéricos, molinos eólicos globales, paisajes no identificados), responde ESTRICTAMENTE: "Sin anclaje visual o cultural específico de la región latinoamericana."
-       - Queda TERMINANTEMENTE PROHIBIDO forzar asociaciones abstractas (como generalizar tecnologías, objetos cotidianos o industrias globales a Latinoamérica).
+    2. Contexto Regional (Latinoamérica):
+       - Si la imagen contiene símbolos compartidos, paisajes andinos/tropicales, fauna regional o banderas de países latinoamericanos, detalla el anclaje identitario regional.
+       - Si es una pieza completamente abstracta o de otra región sin anclaje, indica: "Sin anclaje visual o cultural específico de la región latinoamericana."
 
-   3. Contexto Global (Simbólico / Connotativo):
-       - Queda PROHIBIDO limitarse a describir los objetos presentes o la escena (eso corresponde al nivel icónico/denotativo).
-       - Interpretá EXCLUSIVAMENTE los significados abstractos, valores universales, conceptos culturales o mitos sociales que el signo evoca a nivel global (ej. libertad, aventura, domesticación, afecto, compañía, modernidad).
+    3. Contexto Global (Simbólico / Connotativo):
+       - Explica los valores universales, ideas abstractas o conceptos humanos que evoca la pieza (ej. integración, libertad, diversidad, hospitalidad, tradición).
+       - REGLA DE CONSISTENCIA: Si en el contexto global mencionas que la obra representa a América Latina o a naciones específicas, esto DEBE estar respaldado y desarrollado en los campos locales/regionales previos, sin contradecirse.
 
-    REGLA GENERAL:
-    Construye cada respuesta de manera fluida, breve y conceptual en una sola línea.
-    Basá tus inferencias únicamente en lo visible en la imagen. No inventes ni asignes ubicaciones geográficas que no estén respaldadas por elementos gráficos o textuales presentes en la obra.
-
-    La estructura del JSON debe ser exactamente:
+    ESTRUCTURA EXACTA DEL JSON:
     {{
+        "evidencia_visual": "Breve lista de elementos o símbolos visuales concretos detectados",
         "analisis_simbolico": {{
-            "contexto_argentina": "Análisis si hay elementos argentinos observables. Si no, escribir exactamente: Sin elementos de la iconografía o cultura local argentina.",
-            "contexto_latam": "Análisis si hay elementos latinoamericanos observables. Si no, escribir exactamente: Sin anclaje visual o cultural específico de la región latinoamericana.",
-            "contexto_global": "Valores abstractos, connotaciones culturales universales o conceptos simbólicos globales que evoca la pieza. PROHIBIDO describir físicamente la escena."
+            "contexto_argentina": "Interpretación cultural si hay elementos argentinos; si no, 'Sin elementos de la iconografía o cultura local argentina.'",
+            "contexto_latam": "Interpretación regional si hay elementos latinoamericanos; si no, 'Sin anclaje visual o cultural específico de la región latinoamericana.'",
+            "contexto_global": "Valores abstractos, connotaciones universales o mitos sociales globales que evoca la pieza."
         }}
     }}
     """
