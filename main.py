@@ -1386,8 +1386,9 @@ def render_galeria():
         <footer class="footer-container notranslate" translate="no">
             <p class="footer-text">© 2026 Indexal - Análisis visual asistido por IA - Todos los derechos reservados</p>
             <div class="footer-links">
-                <a href="javascript:void(0)" class="footer-link">Términos y condiciones</a>
-                <a href="javascript:void(0)" class="footer-link">Política de privacidad</a>
+                <a href="javascript:void(0)" class="footer-link" id="linkFooterIndexal">Qué es Indexal</a>
+                <a href="javascript:void(0)" class="footer-link" id="linkFooterTerminos">Términos y condiciones</a>
+                <a href="javascript:void(0)" class="footer-link" id="linkFooterPrivacidad">Política de privacidad</a>
             </div>
         </footer>
 
@@ -1412,17 +1413,29 @@ def render_galeria():
                 posicionarModal(modalTerm);
             }}
 
-            // Control local de modales sin disparar reruns de Streamlit
-            const footerLinks = document.querySelectorAll('.footer-link');
-            if (footerLinks.length > 0 && modalTerm) {{
-                footerLinks[0].addEventListener('click', function(e) {{
+            // Navegación hacia "Qué es Indexal"
+            const linkIndexal = document.getElementById('linkFooterIndexal');
+            if (linkIndexal) {{
+                linkIndexal.addEventListener('click', function(e) {{
+                    e.stopPropagation();
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    if (allButtons.length > 7) allButtons[7].click();
+                }});
+            }}
+
+            // Modales locales de Términos y Privacidad
+            const linkTerminos = document.getElementById('linkFooterTerminos');
+            if (linkTerminos && modalTerm) {{
+                linkTerminos.addEventListener('click', function(e) {{
                     e.stopPropagation();
                     posicionarModal(modalTerm);
                     modalTerm.classList.add('active');
                 }});
             }}
-            if (footerLinks.length > 1 && modalPriv) {{
-                footerLinks[1].addEventListener('click', function(e) {{
+
+            const linkPrivacidad = document.getElementById('linkFooterPrivacidad');
+            if (linkPrivacidad && modalPriv) {{
+                linkPrivacidad.addEventListener('click', function(e) {{
                     e.stopPropagation();
                     posicionarModal(modalPriv);
                     modalPriv.classList.add('active');
@@ -1491,7 +1504,7 @@ def render_galeria():
     """
 
     # Disparadores ocultos de Streamlit (5 botones)
-    columnas_totales = st.columns(7)
+    columnas_totales = st.columns(8)
     with columnas_totales[0]:
         if st.button("\u200b", key="btn_hidden_nav_home"):
             st.session_state["pantalla_actual"] = "home"
@@ -1519,6 +1532,10 @@ def render_galeria():
     with columnas_totales[6]:
         if st.button("\u200b", key="btn_hidden_cerrar_terminos_galeria"):
             st.session_state["modal_terminos_activo"] = False
+            st.rerun()
+    with columnas_totales[7]:
+        if st.button("\u200b", key="btn_hidden_nav_indexal_galeria"):
+            st.session_state["pantalla_actual"] = "que_es_indexal"
             st.rerun()
 
     total_tarjetas = len(INFORMES_MOCK)
@@ -4247,6 +4264,7 @@ def render_analizar():
         if st.button("\u200b", key="btn_hidden_cerrar_popup_terminos"):
             st.session_state["modal_terminos_activo"] = False
             st.rerun()
+
 # -----------------------------------------------------------------
 # PANTALLA 4: REPORTES
 # -----------------------------------------------------------------
@@ -5814,7 +5832,613 @@ def render_reportes():
         if st.button("\u200b", key="btn_hidden_rep_galeria"):
             st.session_state["pantalla_actual"] = "galeria"
             st.rerun()
-    
+
+
+# -----------------------------------------------------------------
+# PANTALLA 5: QUÉ ES INDEXAL
+# -----------------------------------------------------------------
+def render_indexal():
+    st.markdown(
+        """
+        <script>
+            if (!parent.document.getElementById('font-space-grotesk')) {
+                const link = parent.document.createElement('link');
+                link.id = 'font-space-grotesk';
+                link.rel = 'stylesheet';
+                link.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Space+Grotesk:wght@400;500;600;700&display=swap';
+                parent.document.head.appendChild(link);
+            }
+        </script>
+
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+        html, body, [class*="css"], .stApp, .stApp * {
+            font-family: 'Space Grotesk', -apple-system, sans-serif !important;
+        }
+
+        .stApp {
+            background-color: #FFFFFF !important;
+        }
+
+        header[data-testid="stHeader"], header, .stAppHeader { 
+            display: none !important; 
+            height: 0px !important;
+            visibility: hidden !important;
+        }
+
+        #MainMenu, footer { visibility: hidden; }
+
+        div[data-testid="stAppViewContainer"],
+        div[data-testid="stAppViewBlockContainer"],
+        div[data-testid="stMainBlockContainer"],
+        section.main, .stMain, .main {
+            padding: 0px !important;
+            margin: 0px !important;
+            min-height: auto !important;
+            display: block !important;
+            background-color: #FFFFFF !important;
+        }
+
+        .block-container, div[data-testid="block-container"] {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0px !important;
+            margin: 0px !important;
+        }
+
+        div[data-testid="stVerticalBlock"] {
+            gap: 0px !important;
+        }
+
+        div.stButton, div[data-testid="stElementContainer"]:has(div.stButton) {
+            display: none !important;
+            visibility: hidden !important;
+            position: absolute !important;
+            top: -9999px !important;
+            left: -9999px !important;
+            width: 0px !important;
+            height: 0px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    img_logo = cargar_svg_base64("assets/iconos/logo_x.svg")
+    icon_arrow_src = cargar_svg_base64("assets/iconos/vector.svg")
+
+    if "modal_privacidad_activo" not in st.session_state:
+        st.session_state["modal_privacidad_activo"] = False
+    if "modal_terminos_activo" not in st.session_state:
+        st.session_state["modal_terminos_activo"] = False
+
+    logo_bienvenida = cargar_svg_base64("assets/iconos/logo_popup_bienvenida.svg")
+    js_posicionador = obtener_js_posicionamiento_modal()
+    modal_privacidad_html = obtener_modal_privacidad_html(
+        logo_bienvenida, st.session_state["modal_privacidad_activo"]
+    )
+    modal_terminos_html = obtener_modal_terminos_html(
+        logo_bienvenida, st.session_state["modal_terminos_activo"]
+    )
+
+    indexal_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+            * {{
+                box-sizing: border-box;
+                font-family: 'Space Grotesk', sans-serif !important;
+                -webkit-font-smoothing: antialiased;
+            }}
+
+            html, body {{
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: #FFFFFF !important;
+                width: 100% !important;
+                min-height: 100vh !important;
+                display: flex;
+                flex-direction: column;
+            }}
+
+            /* NAVBAR */
+            .navbar-container {{
+                width: 100%;
+                height: 76px;
+                background-color: #0B1020;
+                padding: 0 48px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-shrink: 0;
+            }}
+
+            .navbar-brand {{
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                cursor: pointer;
+                text-decoration: none;
+                transition: opacity 0.2s ease;
+            }}
+
+            .navbar-brand:hover {{ opacity: 0.85; }}
+
+            .navbar-logo-img {{
+                width: 32px;
+                height: 32px;
+                display: block;
+            }}
+
+            .navbar-brand-text {{
+                color: #FFFFFF;
+                font-family: 'Orbitron', sans-serif !important;
+                font-size: 17px;
+                font-weight: 700;
+            }}
+
+            .nav-link-volver {{
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 13px;
+                font-weight: 400;
+                color: #B2B8BF;
+                cursor: pointer;
+                transition: color 0.2s ease;
+                user-select: none;
+            }}
+
+            .nav-link-volver:hover {{ color: #FFFFFF; }}
+
+            /* SECCIÓN GENÉRICA DE CONTENIDO */
+            .content-section {{
+                width: 100%;
+                padding: 72px 56px 56px 56px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+                box-sizing: border-box;
+            }}
+
+            .content-section.bg-white {{
+                background-color: #FFFFFF;
+            }}
+
+            .content-section.como-lo-hacemos {{
+                background-color: #FFFFFF;
+                padding: 64px 56px;
+                gap: 16px;
+            }}
+
+            .content-section.bg-gray {{
+                background-color: #E5E8EA;
+                padding: 64px 56px;
+                gap: 24px;
+            }}
+
+            .hero-desc-p {{
+                width: 780px;
+                max-width: 100%;
+                color: #444748;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 18px;
+                font-style: normal;
+                font-weight: 400;
+                line-height: 28.8px;
+                margin: 0;
+            }}
+
+            .hero-desc-p .brand-inline {{
+                color: #444748;
+                font-family: 'Orbitron', sans-serif !important;
+                font-size: 18px;
+                font-style: normal;
+                font-weight: 400;
+                line-height: 28.8px;
+            }}
+
+            .section-badge {{
+                color: #0057FF;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 13px;
+                font-weight: 700;
+                line-height: normal;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+                margin: 0;
+            }}
+
+            .section-title {{
+                color: #0B1020;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 44px;
+                font-weight: 700;
+                line-height: normal;
+                letter-spacing: normal;
+                margin: 0;
+            }}
+
+            .section-subtitle-title {{
+                color: #0B1020;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 30px;
+                font-weight: 700;
+                line-height: normal;
+                letter-spacing: normal;
+                margin: 0;
+            }}
+
+            .section-title .brand-orbitron {{
+                color: #0B1020;
+                font-family: 'Orbitron', sans-serif !important;
+                font-size: 44px;
+                font-weight: 700;
+                line-height: normal;
+                letter-spacing: normal;
+            }}
+
+            .section-p {{
+                width: 780px;
+                max-width: 100%;
+                color: #444748;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 16px;
+                font-style: normal;
+                font-weight: 400;
+                line-height: 25.6px;
+                margin: 0;
+            }}
+
+            .section-p:last-child {{
+                margin-bottom: 0;
+            }}
+
+            .section-p .brand-inline {{
+                color: #444748;
+                font-family: 'Orbitron', sans-serif !important;
+                font-size: 16px;
+                font-style: normal;
+                font-weight: 700;
+                line-height: 25.6px;
+            }}
+
+            /* GRILLA DE TARJETAS DE MORRIS */
+            .morris-grid {{
+                display: flex;
+                width: 100%;
+                gap: 20px;
+                margin-top: 8px; /* Sumado al gap de 24px de la sección da los 32px exactos */
+                box-sizing: border-box;
+            }}
+
+            .morris-card {{
+                flex: 1 0 0;
+                background-color: #FFFFFF;
+                border-radius: 12px;
+                border: 1px solid #C4C6CF;
+                padding: 24px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                box-sizing: border-box;
+                transition: transform 0.15s ease, box-shadow 0.15s ease;
+            }}
+
+            .morris-card:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+            }}
+
+            .morris-card-num {{
+                color: #0057FF;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 13px;
+                font-style: normal;
+                font-weight: 700;
+                line-height: normal;
+                margin: 0;
+            }}
+
+            .morris-card-title {{
+                color: #0B1020;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 20px;
+                font-style: normal;
+                font-weight: 700;
+                line-height: normal;
+                letter-spacing: normal;
+                margin: 0;
+            }}
+
+            .morris-card-desc {{
+                align-self: stretch;
+                color: #444748;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 13.5px;
+                font-style: normal;
+                font-weight: 400;
+                line-height: 20px;
+                margin: 0;
+            }}
+
+            /* BANNER CTA OSCURO */
+            .cta-banner {{
+                width: 100%;
+                background-color: #0B1020;
+                padding: 72px 56px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 20px;
+                text-align: center;
+                box-sizing: border-box;
+            }}
+
+            .cta-title {{
+                width: 600px;
+                max-width: 100%;
+                color: #FFFFFF;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 26px;
+                font-style: normal;
+                font-weight: 700;
+                line-height: normal;
+                letter-spacing: normal;
+                text-align: center;
+                margin: 0;
+            }}
+
+            .cta-btn {{
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 14px 28px;
+                background-color: #0057FF;
+                border-radius: 10px;
+                border: none;
+                cursor: pointer;
+                transition: background-color 0.2s ease, transform 0.1s ease;
+                user-select: none;
+            }}
+
+            .cta-btn:hover {{ background-color: #0046D5; }}
+            .cta-btn:active {{ transform: scale(0.98); }}
+
+            .cta-btn-text {{
+                color: #FFFFFF;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 15px;
+                font-style: normal;
+                font-weight: 700;
+                line-height: normal;
+            }}
+
+            .cta-btn-icon {{
+                width: 14px;
+                height: 10px;
+                display: block;
+                filter: brightness(0) invert(1);
+            }}
+
+            /* FOOTER */
+            .footer-container {{
+                display: flex;
+                width: 100%;
+                padding: 20px 48px;
+                justify-content: space-between;
+                align-items: center;
+                background: #FFFFFF;
+                border-top: 1px solid #C4C6CF;
+                box-sizing: border-box;
+                flex-shrink: 0;
+            }}
+
+            .footer-text {{
+                color: #444748;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 12px;
+                font-style: normal;
+                font-weight: 400;
+                line-height: normal;
+                margin: 0;
+            }}
+
+            .footer-links {{
+                display: flex;
+                align-items: center;
+                gap: 20px;
+            }}
+
+            .footer-link {{
+                color: #0057FF;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 12px;
+                font-style: normal;
+                font-weight: 500;
+                line-height: normal;
+                text-decoration: none;
+                cursor: pointer;
+            }}
+
+            .footer-link:hover {{ text-decoration: underline; }}
+        </style>
+    </head>
+    <body>
+        <!-- NAVBAR -->
+        <div class="navbar-container">
+            <div class="navbar-brand" id="btnLogoHome">
+                <img src="{img_logo}" class="navbar-logo-img" alt="Indexal">
+                <span class="navbar-brand-text" translate="no">INDEXAL</span>
+            </div>
+            <div class="nav-link-volver" id="btnVolverGaleria">
+                <span translate="no">← Volver a Galería</span>
+            </div>
+        </div>
+
+        <!-- 1. QUÉ ES INDEXAL -->
+        <section class="content-section bg-white notranslate" translate="no">
+            <span class="section-badge">DIAGNÓSTICO VISUAL ASISTIDO POR IA</span>
+            <h1 class="section-title">¿Qué es <span class="brand-orbitron">INDEXAL</span>?</h1>
+            <p class="hero-desc-p">
+                <span class="brand-inline">INDEXAL</span> es una plataforma de diagnóstico visual impulsada por inteligencia artificial. Analiza piezas de diseño gráfico — afiches, logotipos, tipografía, packaging e interfaces UI/UX — así como fotografías y obras de arte, desde una perspectiva técnica y semiótica.<br>En la era de la generación sintética, donde la huella de la realidad se fractura, funciona como un dispositivo de validación visual y un analizador de su construcción.
+            </p>
+        </section>
+
+        <!-- 2. QUÉ PROPONEMOS -->
+        <section class="content-section bg-gray notranslate" translate="no">
+            <h2 class="section-subtitle-title">¿Qué proponemos?</h2>
+            <p class="section-p">
+                Entendemos que la comunicación visual no es un fenómeno puramente óptico; es, ante todo, un acto de percepción y decodificación. Las imágenes que consumimos y creamos están compuestas por múltiples capas de significado que operan simultáneamente — pero nuestra lectura cotidiana suele ser instintiva y naturalizada. Indexal propone pasar de esa mirada instintiva a una comprensión estructurada, descomponiendo una imagen en sus tres niveles de lectura:
+            </p>
+
+            <div class="morris-grid">
+                <div class="morris-card">
+                    <span class="morris-card-num">01</span>
+                    <h3 class="morris-card-title">Sintaxis</h3>
+                    <p class="morris-card-desc">Composición, color, luz — la organización formal de los elementos.</p>
+                </div>
+                <div class="morris-card">
+                    <span class="morris-card-num">02</span>
+                    <h3 class="morris-card-title">Semántica</h3>
+                    <p class="morris-card-desc">Lo que la imagen denota y lo que connota — su significado literal y cultural.</p>
+                </div>
+                <div class="morris-card">
+                    <span class="morris-card-num">03</span>
+                    <h3 class="morris-card-title">Pragmática</h3>
+                    <p class="morris-card-desc">El contexto de recepción, su uso y el efecto que busca provocar.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. CÓMO LO HACEMOS -->
+        <section class="content-section como-lo-hacemos notranslate" translate="no">
+            <h2 class="section-subtitle-title">¿Cómo lo hacemos?</h2>
+            <p class="section-p">
+                El diagnóstico de <span class="brand-inline">INDEXAL</span> no se limita a enumerar qué objetos hay en una escena, sino que decodifica cómo la iluminación, el peso compositivo o la paleta de colores construyen una atmósfera o un mensaje. Al convertir la imagen en palabras y datos estructurados, el análisis técnico se transforma en una herramienta de democratización del análisis visual: funciona tanto como un puente para la accesibilidad —permitiendo percibir espacialmente una obra a través de su descripción— como el respaldo técnico necesario para fundamentar la creación y el análisis crítico.
+            </p>
+        </section>
+
+        <!-- 4. BANNER CTA INFERIOR -->
+        <section class="cta-banner notranslate" translate="no">
+            <h2 class="cta-title">Leé una pieza más allá de lo evidente.</h2>
+            <button class="cta-btn" id="btnCtaAnalizar">
+                <span class="cta-btn-text">Analizar mi imagen</span>
+                <img src="{icon_arrow_src}" class="cta-btn-icon" alt="->">
+            </button>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="footer-container notranslate" translate="no">
+            <p class="footer-text">© 2026 Indexal · Análisis visual asistido por IA · Todos los derechos reservados</p>
+            <div class="footer-links">
+                <a href="javascript:void(0)" class="footer-link">Términos y condiciones</a>
+                <a href="javascript:void(0)" class="footer-link">Política de privacidad</a>
+            </div>
+        </footer>
+
+        <!-- POP UP POLITICA DE PRIVACIDAD -->
+        {modal_privacidad_html}
+
+        <!-- POP UP TERMINOS Y CONDICIONES -->
+        {modal_terminos_html}
+
+        <script>
+            const parentDoc = window.parent.document;
+            {js_posicionador}
+
+            const modalPriv = document.getElementById('modalPoliticaPrivacidad');
+            if (modalPriv && modalPriv.classList.contains('active')) {{
+                posicionarModal(modalPriv);
+            }}
+
+            const modalTerm = document.getElementById('modalTerminosCondiciones');
+            if (modalTerm && modalTerm.classList.contains('active')) {{
+                posicionarModal(modalTerm);
+            }}
+
+            // Modales del Footer
+            const footerLinks = document.querySelectorAll('.footer-link');
+            if (footerLinks.length > 0 && modalTerm) {{
+                footerLinks[0].addEventListener('click', function(e) {{
+                    e.stopPropagation();
+                    posicionarModal(modalTerm);
+                    modalTerm.classList.add('active');
+                }});
+            }}
+            if (footerLinks.length > 1 && modalPriv) {{
+                footerLinks[1].addEventListener('click', function(e) {{
+                    e.stopPropagation();
+                    posicionarModal(modalPriv);
+                    modalPriv.classList.add('active');
+                }});
+            }}
+
+            const btnCerrarPriv = document.getElementById('btnCerrarPopupPrivacidad');
+            if (btnCerrarPriv && modalPriv) {{
+                btnCerrarPriv.addEventListener('click', function() {{
+                    modalPriv.classList.remove('active');
+                }});
+            }}
+
+            const btnCerrarTerm = document.getElementById('btnCerrarPopupTerminos');
+            if (btnCerrarTerm && modalTerm) {{
+                btnCerrarTerm.addEventListener('click', function() {{
+                    modalTerm.classList.remove('active');
+                }});
+            }}
+
+            // Navegación
+            document.getElementById('btnLogoHome').addEventListener('click', function() {{
+                const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                if (allButtons.length > 0) allButtons[0].click();
+            }});
+
+            document.getElementById('btnVolverGaleria').addEventListener('click', function() {{
+                const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                if (allButtons.length > 1) allButtons[1].click();
+            }});
+
+            document.getElementById('btnCtaAnalizar').addEventListener('click', function() {{
+                const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                if (allButtons.length > 2) allButtons[2].click();
+            }});
+        </script>
+    </body>
+    </html>
+    """
+
+    # Disparadores invisibles de Streamlit para la pantalla Indexal
+    cols_indexal = st.columns(3)
+    with cols_indexal[0]:
+        if st.button("\u200b", key="btn_hidden_indexal_home"):
+            st.session_state["pantalla_actual"] = "home"
+            st.rerun()
+    with cols_indexal[1]:
+        if st.button("\u200b", key="btn_hidden_indexal_galeria"):
+            st.session_state["pantalla_actual"] = "galeria"
+            st.rerun()
+    with cols_indexal[2]:
+        if st.button("\u200b", key="btn_hidden_indexal_analizar"):
+            st.session_state["pantalla_actual"] = "analizar"
+            st.rerun()
+
+    # Altura estática suficiente para todo el contenido vertical
+    components.html(indexal_html, height=1590, scrolling=False)
+
 # -----------------------------------------------------------------
 # CONTROLADOR PRINCIPAL DE VISTAS
 # -----------------------------------------------------------------
@@ -5828,3 +6452,5 @@ elif pantalla == "analizar":
     render_analizar()
 elif pantalla == "reportes":
     render_reportes()
+elif pantalla == "que_es_indexal":  
+    render_indexal()
