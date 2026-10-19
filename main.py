@@ -3283,8 +3283,9 @@ def render_analizar():
                 </div>
 
                 <footer class="footer-container notranslate" translate="no">
-                    <p class="footer-text">© 2026 Indexal - Análisis visual asistido por IA - Todos los derechos reservados</p>
+                    <p class="footer-text">© 2026 Indexal · Análisis visual asistido por IA · Todos los derechos reservados</p>
                     <div class="footer-links">
+                        <a href="javascript:void(0)" class="footer-link" id="btnFooterIndexalAnalizar">Qué es Indexal</a>
                         <a href="javascript:void(0)" class="footer-link">Términos y condiciones</a>
                         <a href="javascript:void(0)" class="footer-link">Política de privacidad</a>
                     </div>
@@ -3559,14 +3560,26 @@ def render_analizar():
             }}
 
             // Links del footer principal
-            const footerLinks = document.querySelectorAll('.footer-link');
-            if (footerLinks.length > 0) {{
-                // Términos y condiciones
-                footerLinks[0].addEventListener('click', dispararAperturaTerminos);
+            const btnFootIndexal = document.getElementById('btnFooterIndexalAnalizar');
+            if (btnFootIndexal) {{
+                btnFootIndexal.addEventListener('click', function(e) {{
+                    e.stopPropagation();
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    const idxIndexal = {26 + len(lista_modulos_activa)};
+                    if (allButtons.length > idxIndexal) {{
+                        allButtons[idxIndexal].click();
+                    }}
+                }});
             }}
+
+            const footerLinks = document.querySelectorAll('.footer-link');
             if (footerLinks.length > 1) {{
+                // Términos y condiciones
+                footerLinks[1].addEventListener('click', dispararAperturaTerminos);
+            }}
+            if (footerLinks.length > 2) {{
                 // Política de privacidad
-                footerLinks[1].addEventListener('click', dispararAperturaPrivacidad);
+                footerLinks[2].addEventListener('click', dispararAperturaPrivacidad);
             }}
 
             // Botón cruz (X) para cerrar privacidad
@@ -3931,7 +3944,7 @@ def render_analizar():
 
     # Botones ocultos de navegación y estado
     botones_modulos_count = len(lista_modulos_activa)
-    columnas_totales = st.columns(26 + botones_modulos_count)
+    columnas_totales = st.columns(27 + botones_modulos_count)
 
     # 1. Navegación del Menú Lateral (0, 1, 2)
     with columnas_totales[0]:
@@ -4263,6 +4276,12 @@ def render_analizar():
     with columnas_totales[idx_transversal + 14]:
         if st.button("\u200b", key="btn_hidden_cerrar_popup_terminos"):
             st.session_state["modal_terminos_activo"] = False
+            st.rerun()
+
+    # 20. Botón invisible para navegar a Qué es Indexal
+    with columnas_totales[idx_transversal + 15]:
+        if st.button("\u200b", key="btn_hidden_analizar_indexal"):
+            st.session_state["pantalla_actual"] = "que_es_indexal"
             st.rerun()
 
 # -----------------------------------------------------------------
@@ -5466,8 +5485,9 @@ def render_reportes():
                 {html_seccion_historial}
 
                 <footer class="footer-container notranslate" translate="no">
-                    <p class="footer-text">© 2026 Indexal - Análisis visual asistido por IA - Todos los derechos reservados</p>
+                    <p class="footer-text">© 2026 Indexal · Análisis visual asistido por IA · Todos los derechos reservados</p>
                     <div class="footer-links">
+                        <a href="javascript:void(0)" class="footer-link" id="btnFooterIndexal">Qué es Indexal</a>
                         <a href="javascript:void(0)" class="footer-link">Términos y condiciones</a>
                         <a href="javascript:void(0)" class="footer-link">Política de privacidad</a>
                     </div>
@@ -5629,17 +5649,26 @@ def render_reportes():
                 posicionarModal(modalTerm);
             }}
 
+            // Redirección a Qué es Indexal
+            const btnFootIndexal = document.getElementById('btnFooterIndexal');
+            if (btnFootIndexal) {{
+                btnFootIndexal.addEventListener('click', function() {{
+                    const allButtons = parentDoc.querySelectorAll('div.stButton button');
+                    if (allButtons.length > 3) allButtons[3].click();
+                }});
+            }}
+
             // Control local de modales de Términos y Privacidad (sin rerun de Streamlit)
             const footerLinks = document.querySelectorAll('.footer-link');
-            if (footerLinks.length > 0 && modalTerm) {{
-                footerLinks[0].addEventListener('click', function(e) {{
+            if (footerLinks.length > 1 && modalTerm) {{
+                footerLinks[1].addEventListener('click', function(e) {{
                     e.stopPropagation();
                     posicionarModal(modalTerm);
                     modalTerm.classList.add('active');
                 }});
             }}
-            if (footerLinks.length > 1 && modalPriv) {{
-                footerLinks[1].addEventListener('click', function(e) {{
+            if (footerLinks.length > 2 && modalPriv) {{
+                footerLinks[2].addEventListener('click', function(e) {{
                     e.stopPropagation();
                     posicionarModal(modalPriv);
                     modalPriv.classList.add('active');
@@ -5832,7 +5861,10 @@ def render_reportes():
         if st.button("\u200b", key="btn_hidden_rep_galeria"):
             st.session_state["pantalla_actual"] = "galeria"
             st.rerun()
-
+    with cols[3]:
+        if st.button("\u200b", key="btn_hidden_rep_indexal"):
+            st.session_state["pantalla_actual"] = "que_es_indexal"
+            st.rerun()
 
 # -----------------------------------------------------------------
 # PANTALLA 5: QUÉ ES INDEXAL
