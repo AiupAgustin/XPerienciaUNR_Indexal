@@ -6139,6 +6139,9 @@ def render_indexal():
         logo_bienvenida, st.session_state["modal_terminos_activo"]
     )
 
+    url_pdf_ejemplo_1 = "https://zofiiadkvuexegspzyjv.supabase.co/storage/v1/object/public/reportes_ejemplo/Diagnostico_SnakeRiverAnselAdams_indexal.pdf"
+    url_pdf_ejemplo_2 = "https://zofiiadkvuexegspzyjv.supabase.co/storage/v1/object/public/reportes_ejemplo/Diagnostico_modista_indexal.pdf"
+
     indexal_html = f"""
     <!DOCTYPE html>
     <html>
@@ -6387,6 +6390,87 @@ def render_indexal():
                 margin: 0;
             }}
 
+            /* SECCIÓN EJEMPLOS DE REPORTES */
+            .content-section.seccion-reportes {{
+                background-color: #E5E8EA;
+                padding: 64px 56px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+                box-sizing: border-box;
+                width: 100%;
+            }}
+
+            .report-card-list {{
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                width: 780px;
+                max-width: 100%;
+                margin: 0;
+            }}
+
+            .report-card {{
+                width: 780px;
+                max-width: 100%;
+                background-color: #FFFFFF;
+                border: 1px solid #C4C6CF;
+                border-radius: 12px;
+                padding: 20px 24px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                text-decoration: none;
+                transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+                box-sizing: border-box;
+            }}
+
+            .report-card:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+                border-color: #0057FF;
+            }}
+
+            .report-card-info {{
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }}
+
+            .report-card-tag {{
+                color: #444748;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.8px;
+                text-transform: uppercase;
+                line-height: normal;
+                margin: 0;
+            }}
+
+            .report-card-title {{
+                color: #0B1020;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 17px;
+                font-weight: 700;
+                line-height: normal;
+                margin: 0;
+            }}
+
+            .report-card-link-text {{
+                color: #0057FF;
+                font-family: 'Space Grotesk', sans-serif !important;
+                font-size: 14px;
+                font-weight: 700;
+                line-height: normal;
+                text-decoration: underline;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                white-space: nowrap;
+            }}
+
             /* BANNER CTA OSCURO */
             .cta-banner {{
                 width: 100%;
@@ -6546,6 +6630,30 @@ def render_indexal():
             </p>
         </section>
 
+        <!-- EJEMPLOS DE REPORTES -->
+        <section class="content-section seccion-reportes notranslate" translate="no">
+            <h2 class="section-subtitle-title">Ejemplos de reportes</h2>
+            <span class="section-badge">ANÁLISIS SEMIÓTICO</span>
+
+            <div class="report-card-list">
+                <a href="{url_pdf_ejemplo_1}" target="_blank" rel="noopener noreferrer" class="report-card">
+                    <div class="report-card-info">
+                        <span class="report-card-tag">EJEMPLO 1</span>
+                        <h4 class="report-card-title">Fotografía en blanco y negro</h4>
+                    </div>
+                    <span class="report-card-link-text">Ver reporte completo (PDF) ↗</span>
+                </a>
+
+                <a href="{url_pdf_ejemplo_2}" target="_blank" rel="noopener noreferrer" class="report-card">
+                    <div class="report-card-info">
+                        <span class="report-card-tag">EJEMPLO 2</span>
+                        <h4 class="report-card-title">Ilustración digital</h4>
+                    </div>
+                    <span class="report-card-link-text">Ver reporte completo (PDF) ↗</span>
+                </a>
+            </div>
+        </section>
+
         <!-- 4. BANNER CTA INFERIOR -->
         <section class="cta-banner notranslate" translate="no">
             <h2 class="cta-title">Leé una pieza más allá de lo evidente.</h2>
@@ -6651,7 +6759,7 @@ def render_indexal():
             st.rerun()
 
     # Altura estática suficiente para todo el contenido vertical
-    components.html(indexal_html, height=1590, scrolling=False)
+    components.html(indexal_html, height=1990, scrolling=False)
 
 # -----------------------------------------------------------------
 # CONTROLADOR PRINCIPAL DE VISTAS
